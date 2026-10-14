@@ -13,7 +13,7 @@ import "./globals.css";
 const mincho = Shippori_Mincho_B1({ weight: ["500", "700"], subsets: ["latin"], variable: "--font-mincho", display: "swap" });
 const archivo = Archivo({ subsets: ["latin"], weight: "variable", axes: ["wdth"], variable: "--font-archivo", display: "swap" });
 
-export const SITE_NAME = "Como votou seu vereador";
+export const SITE_NAME = "Vereadores";
 const DESCRIPTION =
   "Câmara Municipal do Rio de Janeiro: votações nominais, presença em plenário e proposições de cada vereador, extraídas das atas e dos sistemas públicos da Câmara.";
 
@@ -68,7 +68,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${BASE_PATH}/mon.svg`} alt="" width={28} height={28} className="mon h-[28px] w-[28px] shrink-0" data-brand />
               </a>
-              <Link href="/" className="wordmark text-[13px] uppercase leading-none" data-brand>
+              <Link href="/" className="wordmark text-[14px] uppercase leading-none" data-brand>
                 {SITE_NAME}
               </Link>
             </span>

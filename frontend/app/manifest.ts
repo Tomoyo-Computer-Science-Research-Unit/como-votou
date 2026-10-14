@@ -4,7 +4,7 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Como votou seu vereador",
+    name: "Vereadores",
     short_name: "Vereadores",
     description: "Votações nominais, presença e proposições na Câmara Municipal do Rio de Janeiro.",
     start_url: "/",
