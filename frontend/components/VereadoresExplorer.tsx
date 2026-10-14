@@ -82,7 +82,7 @@ export function VereadoresExplorer() {
   const [sort, setSort] = useState<Sort>("faltas");
   const [view, setView] = useState<View>("votos");
   const [voteFilter, setVoteFilter] = useState<VoteFilter>("todos");
-  const [selectedId, setSelectedId] = useState(all[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState((all.find((item) => item.situacao === "em_exercicio") ?? all[0])?.id ?? "");
   const [detalhe, setDetalhe] = useState<VereadorDetalhe | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
