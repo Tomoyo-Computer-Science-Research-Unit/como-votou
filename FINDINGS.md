@@ -390,3 +390,47 @@ cd /home/arete/Work/como-votou/backend \
 
 `--offline` rebuilds from `data/raw` only; `--no-refresh` reads only what is not cached. The server
 script `deploy/build-site.sh` runs this for every city of `frontend/data/cities.json`.
+
+---
+
+# Other capitals — what each Câmara publishes (checked 2026-10-14)
+
+Survey to choose the next cities. Checked live with curl, a few requests per site. "API" = machine
+interface with per-record data (mostly Interlegis SAPL 3: `/api/sessao/votoparlamentar/`,
+`/api/sessao/sessaopresenca/`, `/api/materia/autoria/`); "dados abertos" = downloadable files;
+"HTML"/"PDF" = pages or documents only. Brasília is the Câmara Legislativa do DF, not a câmara municipal.
+
+| Capital (UF) | Main system | Nominal votes | Presence | Bills/authors | Note |
+|---|---|---|---|---|---|
+| Rio Branco (AC) | SAPL 3, sapl.riobranco.ac.leg.br | API | API | API | votoparlamentar 41,028 rows, 06/2019 → 08/10/2026 |
+| Maceió (AL) | maceio.al.leg.br | none | PDF | HTML | monthly attendance PDFs stop at 12/2024; sessions suspended 09/2026 |
+| Macapá (AP) | macapa.ap.leg.br (n2gov) | none | none | API (undocumented) | api_macapa.n2gov.com.br/proposicoes, /parlamentares |
+| Manaus (AM) | SAPL 3, sapl.cmm.am.gov.br | totals only (API) | API | API | votoparlamentar empty; registrovotacao 8,042 with totals |
+| Salvador (BA) | cms.ba.gov.br, ScriptCase grids | PDF (not verified) | dados abertos | dados abertos | LEG_SYS_frequencia 23,472 rows per vereador and session, 05/2018 → 09/2026, CSV/XML |
+| Fortaleza (CE) | SAPL 3, sapl.fortaleza.ce.leg.br | not verified | API (to 2020) | API | votoparlamentar empty; virtual painel publishes nothing |
+| Brasília (DF), CLDF | cl.df.gov.br, dados.cl.df.gov.br, PLE API | PDF (not verified) | PDF | API + dados abertos | ple.cl.df.gov.br/pleservico/api/public documented |
+| Vitória (ES) | Câmara sem Papel | PDF | PDF | HTML | "Boletim de Votação/Presença" PDF per session, current |
+| Goiânia (GO) | goiania.go.leg.br + SUAP | PDF (no names) | PDF (scanned) | HTML | atas give only the outcome |
+| São Luís (MA) | cmsaoluis.ma.gov.br | PDF | PDF + HTML totals | HTML | per-session PDF report lists each vote (376 reports) |
+| Cuiabá (MT) | Câmara sem Papel | PDF | PDF | HTML | "Ficha de Votação/Presença" per session |
+| Campo Grande (MS) | camara.ms.gov.br | not verified | not verified | not verified | whole site behind reCAPTCHA |
+| Belo Horizonte (MG) | cmbh.mg.gov.br (SIL) | totals only (DOCX/PDF) | dados abertos (XLSX) | HTML | XLSX per meeting: 41 vereadores × events (P/F/AJ), presence at each vote, not the vote |
+| Belém (PA) | cmb.pa.gov.br | none | none | dados abertos (JSON) | projetos-de-lei/exportar?formato=json with proponente |
+| João Pessoa (PB) | SAPL 3, sapl.joaopessoa.pb.leg.br | API | API | API | votoparlamentar 13,299 rows to 13/10/2026; committee votes mixed in |
+| Curitiba (PR) | cmc.pr.gov.br (SPL II) | not verified | not verified | HTML behind captcha | presence on a Betha portal with reCAPTCHA |
+| Recife (PE) | publico.recife.pe.leg.br (SAPL 2.5 JSON views) | API (sparse) | API | API | /@@sessoes/id/{ID}/votacao; 2 of 14 recent sessions carry votes |
+| Teresina (PI) | Câmara sem Papel | none | none recent | HTML + CSV | author production exports CSV by postback |
+| Natal (RN) | SAPL 3, sapl.natal.rn.leg.br | API (stops 07/2024) | API | API | votoparlamentar 617 rows 2019 → 04/07/2024 |
+| Porto Alegre (RS) | votacoes.camarapoa.rs.gov.br | dados abertos (CSV) | HTML (quorum calls) | HTML | 8,828 nominal votes 2010 → 07/10/2026; /votacoes/por_votacao.csv?votacao_id=N, /votacoes/por_periodo?mes=M&ano=A&format=csv |
+| Porto Velho (RO) | SAPL 3, sapl.portovelho.ro.leg.br | API | API | API | votoparlamentar 78,584 rows, 10/2019 → 13/10/2026 |
+| Boa Vista (RR) | SAPL 3, sapl.boavista.rr.leg.br | none | API (partial, to 08/2026) | API | votoparlamentar empty |
+| Florianópolis (SC) | cmf.sc.gov.br | not verified | not verified | not verified | site behind anti-robot check |
+| Aracaju (SE) | aracaju.se.leg.br + SAPL 2.5 | dados abertos (XLSX) | XLSX (yearly totals) | HTML | one XLSX per nominal vote (Parlamentar/Partido/Voto), to 06/2026 |
+| Palmas (TO) | SAPL 3, sapl.palmas.to.leg.br | none | API (to 03/2024) | API (to 2024) | SAPL apparently abandoned since 03/2024 |
+
+Order suggested by cost: (1) Rio Branco, Porto Velho, João Pessoa: one SAPL 3 adapter serves the
+three, with per-vereador votes, presence and authorship current to this week. (2) Porto Alegre:
+the longest nominal series, as CSV; presence has to come from quorum calls. (3) Recife, Natal,
+Aracaju: partial or lagging votes. (4) Salvador, Belém, CLDF, Manaus: presence and bills but no
+per-vereador votes. (5) São Luís, Vitória, Cuiabá need PDF parsing; Campo Grande, Florianópolis
+and Curitiba sit behind captchas.
