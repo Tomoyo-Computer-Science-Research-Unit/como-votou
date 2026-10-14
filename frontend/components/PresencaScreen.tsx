@@ -26,7 +26,6 @@ export function PresencaScreen() {
         .sort((a, b) => (sort === "nome" ? displayName(a.vereador).localeCompare(displayName(b.vereador), "pt-BR") : b.total - a.total || a.vereador.nome.localeCompare(b.vereador.nome))),
     [sort, year]
   );
-  const totalGeral = rows.reduce((sum, row) => sum + row.total, 0);
 
   const hotkeys = useMemo(
     () => ({
@@ -63,7 +62,6 @@ export function PresencaScreen() {
         }
         flush
         fill
-        foot={`${rows.length} vereadores com apuração em ${year}; ${formatInt(totalGeral)} faltas no total. Entre parênteses, as abonadas. Ponto: mês sem apuração publicada.`}
       >
         {rows.length === 0 ? (
           <EmptyState>SEM PRESENÇA APURADA NESTE ANO</EmptyState>

@@ -116,7 +116,7 @@ export function PartidosScreen() {
 
   return (
     <Screen columns="300px minmax(0, 1fr) minmax(0, 1fr)" rows="auto minmax(0, 1fr)">
-      <Panel title={<b>Partidos</b>} flush fill style={{ gridRow: "1 / span 2" }} foot={`${leg.numero}ª legislatura. Coesão: parte dos votos do partido no lado majoritário dele, em média, nas votações com dois ou mais votantes.`}>
+      <Panel title={<b>Partidos</b>} flush fill style={{ gridRow: "1 / span 2" }}>
         <ul className="menu" role="listbox" aria-label="Partidos">
           {partidos.map((partido) => (
             <li key={partido.sigla} role="presentation">

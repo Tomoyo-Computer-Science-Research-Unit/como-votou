@@ -164,7 +164,6 @@ export function VereadoresExplorer() {
         flush
         fill
         style={{ gridRow: "1 / span 3" }}
-        foot={`${rows.length} vereadores · legislatura ${leg.numero}ª (${legStart}–${leg.fim.slice(0, 4)}).`}
       >
         <ul className="menu" role="listbox" aria-label="Vereadores">
           {rows.map(({ vereador, value }) => (

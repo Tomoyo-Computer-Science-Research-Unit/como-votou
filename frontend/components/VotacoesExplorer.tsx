@@ -114,7 +114,6 @@ export function VotacoesExplorer() {
         flush
         fill
         style={{ gridRow: "1 / span 2" }}
-        foot={`${list.length} votações no filtro.`}
       >
         <ul className="menu" role="listbox" aria-label="Votações">
           {list.map((item) => (

@@ -943,3 +943,8 @@ html.fx[data-theme="dark"] .detail {
   width: 36px;
   height: 46px;
 }
+
+/* Painéis que preenchem a linha rolam por dentro: listas, menus e tabelas compridas. */
+.panel__body--fill {
+  overflow: auto;
+}
