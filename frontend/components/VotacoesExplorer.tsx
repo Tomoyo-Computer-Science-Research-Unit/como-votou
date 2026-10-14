@@ -198,7 +198,7 @@ export function VotacoesExplorer() {
           {!votos ? (
             <EmptyState>CARREGANDO</EmptyState>
           ) : (
-            <div className="grid h-full grid-cols-4 divide-x divide-line">
+            <div className="grid h-full divide-x divide-line" style={{ gridTemplateColumns: grupos.map((grupo) => `minmax(90px, ${Math.max(1, Math.min(grupo.ids.length, 12))}fr)`).join(" ") }}>
               {grupos.map((grupo) => (
                 <div key={grupo.voto} className="min-h-0 overflow-auto">
                   <div className={`sticky top-0 border-b border-line bg-paper px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] ${grupo.voto === "sim" ? "voto-sim" : grupo.voto === "nao" ? "voto-nao" : "text-ash"}`}>
@@ -208,7 +208,7 @@ export function VotacoesExplorer() {
                     {grupo.ids.map((id) => {
                       const vereador = vereadores.get(id);
                       return (
-                        <li key={id} className="whitespace-normal break-words px-3">
+                        <li key={id} className="whitespace-normal px-3">
                           <Link href={`/?v=${encodeURIComponent(id)}`} className="text-ink hover:underline hover:underline-offset-4">
                             {vereador ? displayName(vereador) : id}
                           </Link>
