@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   publisher: "Tomoyo",
   keywords: ["Rio de Janeiro", "Câmara Municipal", "vereadores", "votações nominais", "presença", "dados públicos"],
   alternates: { canonical: "/" },
-  openGraph: { type: "website", locale: "pt_BR", url: SITE_URL, siteName: SITE_NAME, title: SITE_NAME, description: DESCRIPTION },
+  openGraph: { type: "website", locale: "pt_BR", url: SITE_URL, siteName: SITE_NAME, title: SITE_NAME, description: DESCRIPTION, images: [{ url: "/icon.png", width: 512, height: 512, alt: SITE_NAME }] },
   twitter: { card: "summary", title: SITE_NAME, description: DESCRIPTION },
-  icons: { icon: `${BASE_PATH}/mon.svg`, shortcut: `${BASE_PATH}/mon.svg` }
+  icons: { icon: `${BASE_PATH}/icon.png`, shortcut: `${BASE_PATH}/icon.png`, apple: `${BASE_PATH}/icon.png` }
 };
 
 const THEME_SCRIPT = `(() => {
@@ -66,7 +66,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <span className="flex shrink-0 items-center gap-3 whitespace-nowrap text-ink" data-brand>
               <a href="https://g0v.tomoyo.systems/" aria-label="g0v.tomoyo.systems" data-brand>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`${BASE_PATH}/mon.svg`} alt="" width={28} height={28} className="mon h-[28px] w-[28px] shrink-0" data-brand />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${BASE_PATH}/icon-line-64.png`} alt="" width={30} height={30} className="theme-light h-[30px] w-[30px] shrink-0" data-brand />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${BASE_PATH}/icon-line-dark-64.png`} alt="" width={30} height={30} className="theme-dark h-[30px] w-[30px] shrink-0" data-brand />
               </a>
               <Link href="/" className="wordmark text-[14px] uppercase leading-none" data-brand>
                 {SITE_NAME}

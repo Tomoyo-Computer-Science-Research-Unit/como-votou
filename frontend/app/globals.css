@@ -992,3 +992,9 @@ input.yearselect::placeholder {
   letter-spacing: 0.14em;
   font-size: 10.5px;
 }
+
+/* Duas versões do ícone: traço preto no claro, traço branco no escuro. */
+:root[data-theme="dark"] .theme-light,
+:root:not([data-theme="dark"]) .theme-dark {
+  display: none;
+}
