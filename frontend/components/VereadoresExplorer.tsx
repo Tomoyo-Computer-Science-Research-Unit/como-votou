@@ -27,7 +27,16 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 type Sort = "faltas" | "participacao" | "proposicoes" | "nome";
 type Scope = "exercicio" | "todos";
 type View = "votos" | "proposicoes";
-type VoteFilter = "todos" | "contra" | "ausencias";
+type VoteFilter = "todos" | "sim" | "nao" | "aprovou" | "derrubou" | "contra" | "ausencias";
+const VOTE_FILTERS: Array<{ value: VoteFilter; label: string }> = [
+  { value: "todos", label: "Todos os votos" },
+  { value: "sim", label: "Votou sim" },
+  { value: "nao", label: "Votou não" },
+  { value: "aprovou", label: "Votou sim e passou" },
+  { value: "derrubou", label: "Votou não e caiu" },
+  { value: "contra", label: "Contra a maioria" },
+  { value: "ausencias", label: "Ausências" }
+];
 const SORTS: Array<{ value: Sort; label: string }> = [
   { value: "faltas", label: "Por faltas" },
   { value: "participacao", label: "Por participação" },
@@ -150,13 +159,24 @@ export function VereadoresExplorer() {
       if (!votacao) {
         return false;
       }
-      if (voteFilter === "contra") {
-        return votacao.lado_vencedor && linha.voto !== votacao.lado_vencedor && (linha.voto === "sim" || linha.voto === "nao");
+      const passou = votacao.resultado === "aprovado" || votacao.resultado === "derrubado" || votacao.lado_vencedor === "sim";
+      const caiu = votacao.resultado === "rejeitado" || votacao.resultado === "mantido" || votacao.lado_vencedor === "nao";
+      switch (voteFilter) {
+        case "sim":
+          return linha.voto === "sim";
+        case "nao":
+          return linha.voto === "nao";
+        case "aprovou":
+          return linha.voto === "sim" && passou;
+        case "derrubou":
+          return linha.voto === "nao" && caiu;
+        case "contra":
+          return Boolean(votacao.lado_vencedor) && linha.voto !== votacao.lado_vencedor && (linha.voto === "sim" || linha.voto === "nao");
+        case "ausencias":
+          return linha.voto === "ausente";
+        default:
+          return true;
       }
-      if (voteFilter === "ausencias") {
-        return linha.voto === "ausente";
-      }
-      return true;
     });
 
   return (
@@ -204,7 +224,17 @@ export function VereadoresExplorer() {
             {selected.foto ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={`${BASE_PATH}/${selected.foto}`} alt="" className="photo photo--sm" loading="lazy" />
-            ) : null}
+            ) : (
+              // A Câmara só publica foto de quem está em exercício; para os demais, as iniciais.
+              <span className="photo photo--sm grid place-items-center text-[12px] tracking-[0.1em] text-ash" aria-hidden="true">
+                {displayName(selected)
+                  .split(" ")
+                  .filter((part) => part.length > 2)
+                  .slice(0, 2)
+                  .map((part) => part[0]?.toUpperCase())
+                  .join("")}
+              </span>
+            )}
             <span>
               <b className="serif text-[16px]">{displayName(selected)}</b>
               <span className="mt-0.5 block text-[10.5px] tracking-[0.12em] text-ash">
@@ -264,9 +294,11 @@ export function VereadoresExplorer() {
           <>
             {view === "votos" ? (
               <select className="yearselect" aria-label="Filtro" value={voteFilter} onChange={(event) => setVoteFilter(event.target.value as VoteFilter)}>
-                <option value="todos">Todos os votos</option>
-                <option value="contra">Contra a maioria</option>
-                <option value="ausencias">Ausências</option>
+                {VOTE_FILTERS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </select>
             ) : null}
             <Segmented

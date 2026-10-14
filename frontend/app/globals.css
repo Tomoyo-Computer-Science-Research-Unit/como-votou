@@ -977,3 +977,18 @@ html.fx[data-theme="dark"] .detail {
   padding-left: 6px;
   padding-right: 6px;
 }
+
+/* Campo de busca com a mesma cara dos seletores. */
+input.yearselect {
+  padding-right: 8px;
+  background-image: none;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 11.5px;
+}
+input.yearselect::placeholder {
+  color: var(--ash);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+}

@@ -3,77 +3,105 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useScreenHotkeys } from "@/components/Hotkeys";
-import { EmptyState, Panel, Screen, Segmented } from "@/components/ui";
-import { displayName, formatInt, getVereadores, presencaYears } from "@/lib/static-api";
+import { EmptyState, Panel, Screen } from "@/components/ui";
+import { displayName, getVereadores, presencaYears, type PresencaMes } from "@/lib/static-api";
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 type Sort = "total" | "nome";
+type YearSel = number | "all";
 
+function normalize(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+/** Faltas em plenário: por mês num ano, ou por ano no período todo. */
 export function PresencaScreen() {
   const years = presencaYears();
-  const [year, setYear] = useState(years[0] ?? new Date().getFullYear());
+  const all = getVereadores();
+  const [year, setYear] = useState<YearSel>(years[0] ?? new Date().getFullYear());
   const [sort, setSort] = useState<Sort>("total");
+  const [partido, setPartido] = useState("all");
+  const [query, setQuery] = useState("");
+  const partidos = useMemo(() => [...new Set(all.map((item) => item.partido).filter((item): item is string => Boolean(item)))].sort((a, b) => a.localeCompare(b, "pt-BR")), [all]);
+  const columns = year === "all" ? [...years].sort((a, b) => a - b).map(String) : MONTHS;
 
-  const rows = useMemo(
-    () =>
-      getVereadores()
-        .map((vereador) => {
-          const meses = MONTHS.map((_, index) => vereador.presenca?.por_mes?.[`${year}-${String(index + 1).padStart(2, "0")}`] ?? null);
-          const ano = vereador.presenca?.por_ano?.[String(year)];
-          return { vereador, meses, total: ano?.total ?? 0, abonadas: ano?.abonadas ?? 0, apurados: meses.filter(Boolean).length };
-        })
-        .filter((row) => row.apurados > 0)
-        .sort((a, b) => (sort === "nome" ? displayName(a.vereador).localeCompare(displayName(b.vereador), "pt-BR") : b.total - a.total || a.vereador.nome.localeCompare(b.vereador.nome))),
-    [sort, year]
-  );
+  const rows = useMemo(() => {
+    const needle = normalize(query.trim());
+    return all
+      .filter((vereador) => partido === "all" || vereador.partido === partido)
+      .filter((vereador) => !needle || normalize(`${displayName(vereador)} ${vereador.nome}`).includes(needle))
+      .map((vereador) => {
+        const cells: Array<PresencaMes | null> =
+          year === "all"
+            ? columns.map((item) => vereador.presenca?.por_ano?.[item] ?? null)
+            : MONTHS.map((_, index) => vereador.presenca?.por_mes?.[`${year}-${String(index + 1).padStart(2, "0")}`] ?? null);
+        const total = cells.reduce((sum, cell) => sum + (cell?.total ?? 0), 0);
+        const abonadas = cells.reduce((sum, cell) => sum + (cell?.abonadas ?? 0), 0);
+        return { vereador, cells, total, abonadas, apurados: cells.filter(Boolean).length };
+      })
+      .filter((row) => row.apurados > 0)
+      .sort((a, b) => (sort === "nome" ? displayName(a.vereador).localeCompare(displayName(b.vereador), "pt-BR") : b.total - a.total || a.vereador.nome.localeCompare(b.vereador.nome)));
+  }, [all, columns, partido, query, sort, year]);
 
   const hotkeys = useMemo(
     () => ({
-      ArrowLeft: () => setYear((current) => years[(years.indexOf(current) + 1) % years.length] ?? current),
-      ArrowRight: () => setYear((current) => years[(years.indexOf(current) - 1 + years.length) % years.length] ?? current),
+      ArrowLeft: () => setYear((current) => stepYear(years, current, 1)),
+      ArrowRight: () => setYear((current) => stepYear(years, current, -1)),
       ArrowUp: () => setSort((current) => (current === "total" ? "nome" : "total")),
       ArrowDown: () => setSort((current) => (current === "total" ? "nome" : "total"))
     }),
     [years]
   );
   useScreenHotkeys(hotkeys);
+  const shade = (cell: PresencaMes | null) => (cell && cell.total ? { background: `color-mix(in srgb, var(--ink) ${Math.min(60, cell.total * (year === "all" ? 3 : 12))}%, transparent)`, color: cell.total >= (year === "all" ? 15 : 4) ? "var(--paper)" : undefined } : undefined);
 
   return (
     <Screen columns="minmax(0, 1fr)" rows="minmax(0, 1fr)">
       <Panel
         title={
           <span>
-            <b>Faltas em plenário</b> · {year}
+            <b>Faltas em plenário</b> · {year === "all" ? `${years[years.length - 1]}–${years[0]}` : year}
           </span>
         }
         aside={
           <>
-            <Segmented label="Ano" value={String(year)} options={years.map((item) => ({ value: String(item), label: String(item) }))} onChange={(value) => setYear(Number(value))} />
-            <Segmented
-              label="Ordem"
-              value={sort}
-              options={[
-                { value: "total", label: "Faltas" },
-                { value: "nome", label: "Nome" }
-              ]}
-              onChange={setSort}
-            />
+            <input className="yearselect w-[180px]" type="search" aria-label="Buscar vereador" placeholder="buscar nome" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <select className="yearselect" aria-label="Partido" value={partido} onChange={(event) => setPartido(event.target.value)}>
+              <option value="all">Partidos</option>
+              {partidos.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <select className="yearselect" aria-label="Ano" value={year === "all" ? "all" : String(year)} onChange={(event) => setYear(event.target.value === "all" ? "all" : Number(event.target.value))}>
+              <option value="all">Todos os anos</option>
+              {years.map((item) => (
+                <option key={item} value={String(item)}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <select className="yearselect" aria-label="Ordem" value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+              <option value="total">Por faltas</option>
+              <option value="nome">Por nome</option>
+            </select>
           </>
         }
         flush
         fill
       >
         {rows.length === 0 ? (
-          <EmptyState>SEM PRESENÇA APURADA NESTE ANO</EmptyState>
+          <EmptyState>SEM PRESENÇA APURADA NESTE RECORTE</EmptyState>
         ) : (
           <table className="ruled">
             <thead>
               <tr>
                 <th>Vereador</th>
                 <th>Partido</th>
-                {MONTHS.map((month) => (
-                  <th key={month} className="right">
-                    {month}
+                {columns.map((column) => (
+                  <th key={column} className="right">
+                    {column}
                   </th>
                 ))}
                 <th className="right">Total</th>
@@ -88,14 +116,9 @@ export function PresencaScreen() {
                     </Link>
                   </td>
                   <td className="faint">{row.vereador.partido}</td>
-                  {row.meses.map((mes, index) => (
-                    <td
-                      key={index}
-                      className={`num right ${mes === null ? "faint" : ""}`}
-                      style={mes && mes.total ? { background: `color-mix(in srgb, var(--ink) ${Math.min(60, mes.total * 12)}%, transparent)`, color: mes.total >= 4 ? "var(--paper)" : undefined } : undefined}
-                      title={mes ? `${mes.total} faltas, ${mes.abonadas} abonadas` : "sem apuração"}
-                    >
-                      {mes === null ? "·" : mes.total === 0 ? "" : mes.abonadas ? `${mes.total} (${mes.abonadas})` : mes.total}
+                  {row.cells.map((cell, index) => (
+                    <td key={index} className={`num right ${cell === null ? "faint" : ""}`} style={shade(cell)} title={cell ? `${cell.total} faltas, ${cell.abonadas} abonadas` : "sem apuração"}>
+                      {cell === null ? "·" : cell.total === 0 ? "" : cell.abonadas ? `${cell.total} (${cell.abonadas})` : cell.total}
                     </td>
                   ))}
                   <td className="num right">
@@ -110,4 +133,10 @@ export function PresencaScreen() {
       </Panel>
     </Screen>
   );
+}
+
+function stepYear(years: number[], current: YearSel, step: number): YearSel {
+  const options: YearSel[] = ["all", ...years];
+  const index = options.indexOf(current);
+  return options[(index + step + options.length) % options.length];
 }

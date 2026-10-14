@@ -138,7 +138,7 @@ def test_export_shape(tmp_path):
     assert row["id"] == "u2:0" and row["data"] == "2025-03-05"           # newest first
     assert "votos" not in row and row["por_partido"] == {"PL": {"nao": 2, "abstencao": 1}, "PSD": {"nao": 1}}
     assert row["sessao"]["numero"] == "2ª Sessão" and row["fonte"].endswith("?OpenDocument") and row["proposicao"]["autores"] == []
-    assert static["votacoes"][1]["proposicao"]["ementa"].endswith("…") and len(static["votacoes"][1]["proposicao"]["ementa"]) <= esf.EMENTA_MAX
+    assert static["votacoes"][1]["proposicao"]["ementa"]  # ementa completa no nucleo; o site quebra linha em vez de cortar
     v1 = next(v for v in static["vereadores"] if v["id"] == "cvd:1")
     assert v1["foto"] == "fotos/1.jpg" and v1["presenca"]["por_mes"]["2025-04"] == {"faltas": 0, "abonadas": 0, "total": 0}
     assert v1["presenca"]["por_ano"]["2025"]["meses"] == 2 and v1["totais"]["votacoes_registradas"] == 2
