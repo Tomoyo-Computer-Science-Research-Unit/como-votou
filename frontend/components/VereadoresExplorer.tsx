@@ -29,10 +29,10 @@ type Scope = "exercicio" | "todos";
 type View = "votos" | "proposicoes";
 type VoteFilter = "todos" | "contra" | "ausencias";
 const SORTS: Array<{ value: Sort; label: string }> = [
-  { value: "faltas", label: "Faltas" },
-  { value: "participacao", label: "Partic." },
-  { value: "proposicoes", label: "Props." },
-  { value: "nome", label: "Nome" }
+  { value: "faltas", label: "Por faltas" },
+  { value: "participacao", label: "Por participação" },
+  { value: "proposicoes", label: "Por proposições" },
+  { value: "nome", label: "Por nome" }
 ];
 
 function legYears(vereador: Vereador, start: number): string[] {
@@ -65,6 +65,8 @@ export function VereadoresExplorer() {
   const legStart = Number(leg.inicio.slice(0, 4));
   const votacoes = useMemo(() => new Map(getVotacoes().map((item) => [item.id, item])), []);
   const [scope, setScope] = useState<Scope>("exercicio");
+  const [partido, setPartido] = useState<string>("all");
+  const partidos = useMemo(() => [...new Set(all.map((item) => item.partido).filter((item): item is string => Boolean(item)))].sort((a, b) => a.localeCompare(b, "pt-BR")), [all]);
   const [sort, setSort] = useState<Sort>("faltas");
   const [view, setView] = useState<View>("votos");
   const [voteFilter, setVoteFilter] = useState<VoteFilter>("todos");
@@ -96,9 +98,10 @@ export function VereadoresExplorer() {
             : 0;
     return all
       .filter((vereador) => scope === "todos" || vereador.situacao === "em_exercicio" || vereador.id === selectedId)
+      .filter((vereador) => partido === "all" || vereador.partido === partido || vereador.id === selectedId)
       .map((vereador) => ({ vereador, value: metric(vereador) }))
       .sort((a, b) => (sort === "nome" ? displayName(a.vereador).localeCompare(displayName(b.vereador), "pt-BR") : b.value - a.value));
-  }, [all, legStart, scope, selectedId, sort]);
+  }, [all, legStart, partido, scope, selectedId, sort]);
   const selected = all.find((item) => item.id === selectedId) ?? all[0];
   const index = Math.max(0, rows.findIndex((row) => row.vereador.id === selected?.id));
 
@@ -158,18 +161,33 @@ export function VereadoresExplorer() {
 
   return (
     <Screen columns="320px minmax(0, 1fr) minmax(0, 1fr)" rows="auto minmax(0, 1fr) minmax(0, 1.3fr)">
-      <Panel
-        title={<b>{scope === "exercicio" ? "Em exercício" : "Todos"}</b>}
-        aside={<Segmented label="Ordem" value={sort} options={SORTS} onChange={setSort} />}
-        flush
-        fill
-        style={{ gridRow: "1 / span 3" }}
-      >
+      <Panel title={<b>Vereadores</b>} aside={<span className="text-[10px] tracking-[0.14em] text-ash">{rows.length}</span>} flush fill style={{ gridRow: "1 / span 3" }}>
+        <div className="grid grid-cols-2 gap-2 border-b border-line p-2">
+          <select className="yearselect col-span-2" aria-label="Ordem" value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+            {SORTS.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+          <select className="yearselect" aria-label="Partido" value={partido} onChange={(event) => setPartido(event.target.value)}>
+            <option value="all">Partidos</option>
+            {partidos.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <select className="yearselect" aria-label="Situação" value={scope} onChange={(event) => setScope(event.target.value as Scope)}>
+            <option value="exercicio">Em exercício</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
         <ul className="menu" role="listbox" aria-label="Vereadores">
           {rows.map(({ vereador, value }) => (
             <li key={vereador.id} role="presentation">
               <button type="button" role="option" aria-selected={vereador.id === selected.id} onClick={() => setSelectedId(vereador.id)}>
-                <span className="truncate">
+                <span className="whitespace-normal break-words">
                   {displayName(vereador)}
                   <span className="faint ml-1.5 text-[10px] tracking-[0.08em]">{vereador.partido}</span>
                 </span>
@@ -245,16 +263,11 @@ export function VereadoresExplorer() {
         aside={
           <>
             {view === "votos" ? (
-              <Segmented
-                label="Filtro"
-                value={voteFilter}
-                options={[
-                  { value: "todos", label: "Todos" },
-                  { value: "contra", label: "Contra a maioria" },
-                  { value: "ausencias", label: "Ausências" }
-                ]}
-                onChange={setVoteFilter}
-              />
+              <select className="yearselect" aria-label="Filtro" value={voteFilter} onChange={(event) => setVoteFilter(event.target.value as VoteFilter)}>
+                <option value="todos">Todos os votos</option>
+                <option value="contra">Contra a maioria</option>
+                <option value="ausencias">Ausências</option>
+              </select>
             ) : null}
             <Segmented
               label="Lista"
@@ -299,7 +312,7 @@ export function VereadoresExplorer() {
                           {votacao!.proposicao.id}
                         </Link>
                       </td>
-                      <td className="max-w-[420px] truncate text-ash" title={votacao!.proposicao.ementa}>
+                      <td className="max-w-[420px] whitespace-normal break-words text-ash" title={votacao!.proposicao.ementa}>
                         {votacao!.proposicao.ementa.toLowerCase()}
                       </td>
                       <td className={`${linha.voto === "sim" ? "voto-sim" : linha.voto === "nao" ? "voto-nao" : "faint"} ${contra ? "font-medium" : ""}`}>{VOTO_LABELS[linha.voto as Voto] ?? linha.voto}</td>
@@ -329,7 +342,7 @@ export function VereadoresExplorer() {
                 <tr key={proposicao.id}>
                   <td className="num">{formatDate(proposicao.data)}</td>
                   <td className="whitespace-nowrap">{proposicao.id}</td>
-                  <td className="max-w-[620px] truncate text-ash" title={proposicao.ementa}>
+                  <td className="max-w-[620px] whitespace-normal break-words text-ash" title={proposicao.ementa}>
                     {proposicao.ementa.toLowerCase()}
                   </td>
                 </tr>

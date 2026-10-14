@@ -82,7 +82,7 @@ export function PresencaScreen() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.vereador.id}>
-                  <td className="max-w-[220px] truncate">
+                  <td className="max-w-[220px] whitespace-normal break-words">
                     <Link href={`/?v=${encodeURIComponent(row.vereador.id)}`} className="text-ink hover:underline hover:underline-offset-4">
                       {displayName(row.vereador)}
                     </Link>

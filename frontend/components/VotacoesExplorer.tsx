@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useScreenHotkeys } from "@/components/Hotkeys";
-import { EmptyState, Panel, Screen, Segmented, Stat } from "@/components/ui";
+import { EmptyState, Panel, Screen, Stat } from "@/components/ui";
 import { YearSelect, stepYear, type YearSel } from "@/components/YearSelect";
-import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotos, type Voto } from "@/lib/static-api";
+import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotacao, type VotacaoDetalhe, type Voto } from "@/lib/static-api";
 
 type ResultFilter = "todos" | "aprovado" | "rejeitado" | "outros";
 const RESULTS: Array<{ value: ResultFilter; label: string }> = [
   { value: "todos", label: "Todos" },
-  { value: "aprovado", label: "Aprov." },
-  { value: "rejeitado", label: "Rejeit." },
+  { value: "aprovado", label: "Aprovados" },
+  { value: "rejeitado", label: "Rejeitados" },
   { value: "outros", label: "Outros" }
 ];
 
@@ -22,7 +22,8 @@ export function VotacoesExplorer() {
   const [year, setYear] = useState<YearSel>("all");
   const [result, setResult] = useState<ResultFilter>("todos");
   const [selectedId, setSelectedId] = useState(all[0]?.id ?? "");
-  const [votos, setVotos] = useState<Record<string, Voto> | null>(null);
+  const [detalhe, setDetalhe] = useState<VotacaoDetalhe | null>(null);
+  const votos = detalhe?.votos ?? null;
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -59,13 +60,13 @@ export function VotacoesExplorer() {
 
   useEffect(() => {
     let alive = true;
-    setVotos(null);
+    setDetalhe(null);
     if (!selected) {
       return;
     }
-    loadVotos(selected.id).then((data) => {
+    loadVotacao(selected.id).then((data) => {
       if (alive) {
-        setVotos(data);
+        setDetalhe(data);
       }
     });
     return () => {
@@ -108,7 +109,13 @@ export function VotacoesExplorer() {
         aside={
           <>
             <YearSelect years={[...years].reverse()} value={year} onChange={setYear} />
-            <Segmented label="Resultado" value={result} options={RESULTS} onChange={setResult} />
+            <select className="yearselect" aria-label="Resultado" value={result} onChange={(event) => setResult(event.target.value as ResultFilter)}>
+              {RESULTS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </>
         }
         flush
@@ -119,7 +126,7 @@ export function VotacoesExplorer() {
           {list.map((item) => (
             <li key={item.id} role="presentation">
               <button type="button" role="option" aria-selected={item.id === selected.id} onClick={() => setSelectedId(item.id)}>
-                <span className="truncate">
+                <span className="whitespace-normal break-words">
                   {item.proposicao.id}
                   <span className="faint ml-1.5 text-[10px] tracking-[0.08em]">{formatDate(item.data)}</span>
                 </span>
@@ -147,7 +154,7 @@ export function VotacoesExplorer() {
       >
         <div className="grid grid-cols-[minmax(0,1fr)_260px] gap-8">
           <div>
-            <p className="serif text-[15px] leading-6 text-ink">{selected.proposicao.ementa.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}</p>
+            <p className="serif text-[15px] leading-6 text-ink">{(detalhe?.proposicao.ementa ?? selected.proposicao.ementa).toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}</p>
             <p className="mt-2 text-[11px] tracking-[0.08em] text-ash">
               {selected.proposicao.autores.map(cleanAuthor).join(", ")}
               {selected.sessao?.tipo ? ` · ${selected.sessao.tipo}` : ""}
@@ -164,9 +171,9 @@ export function VotacoesExplorer() {
         </div>
       </Panel>
 
-      <div className="grid min-h-0 grid-cols-[280px_minmax(0,1fr)] gap-2">
+      <div className="grid min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-2">
         <Panel title={<b>Por partido</b>} flush fill>
-          <table className="ruled">
+          <table className="ruled ruled--tight">
             <thead>
               <tr>
                 <th>Partido</th>
@@ -201,7 +208,7 @@ export function VotacoesExplorer() {
                     {grupo.ids.map((id) => {
                       const vereador = vereadores.get(id);
                       return (
-                        <li key={id} className="truncate px-3">
+                        <li key={id} className="whitespace-normal break-words px-3">
                           <Link href={`/?v=${encodeURIComponent(id)}`} className="text-ink hover:underline hover:underline-offset-4">
                             {vereador ? displayName(vereador) : id}
                           </Link>

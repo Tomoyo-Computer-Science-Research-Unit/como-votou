@@ -132,7 +132,7 @@ def build(snapshot: dict) -> tuple[dict, dict[str, dict], dict[str, dict]]:
         vt_rows.append({   # shape of frontend/lib/static-api.ts `Votacao`; per-vereador votes are NOT here
             "id": vt["id"], "data": vt["data"], "hora": vt["hora"], "legislatura": vt["legislatura"], "sessao": vt["sessao"],
             "proposicao": {"id": p.get("id") or "", "tipo": p.get("tipo") or "", "numero": p.get("numero") or "",
-                           "ano": p.get("ano"), "ementa": short(p.get("ementa")) or "",
+                           "ano": p.get("ano"), "ementa": p.get("ementa") or "",
                            "autores": p.get("autores", []), "autores_ids": p.get("autores_ids", [])},
             "objeto": vt.get("objeto"), "resultado": vt["resultado"], "contagem": vt["contagem"],
             "lado_vencedor": vt["lado_vencedor"], "por_partido": vt["por_partido"], "presidente": vt.get("presidente"),

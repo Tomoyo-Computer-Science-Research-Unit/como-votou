@@ -161,20 +161,34 @@ export function cleanAuthor(value: string): string {
 const votosCache = new Map<string, Record<string, Voto>>();
 const detalheCache = new Map<string, VereadorDetalhe>();
 
+export type VotacaoDetalhe = Votacao & { votos: Record<string, Voto>; resultado_frase?: string | null; presidente?: string | null; roster_mes?: string | null };
+const detalheVotacaoCache = new Map<string, VotacaoDetalhe | null>();
+
+/** Arquivo da votação: votos por vereador e a ementa completa (o núcleo só leva um resumo). */
+export async function loadVotacao(votacaoId: string): Promise<VotacaoDetalhe | null> {
+  if (detalheVotacaoCache.has(votacaoId)) {
+    return detalheVotacaoCache.get(votacaoId) ?? null;
+  }
+  try {
+    const module = (await import(`@/lib/static-votacoes/${fileId(votacaoId)}.generated.json`)) as { default?: VotacaoDetalhe };
+    const detalhe = (module.default ?? module) as VotacaoDetalhe;
+    detalheVotacaoCache.set(votacaoId, detalhe);
+    return detalhe;
+  } catch {
+    detalheVotacaoCache.set(votacaoId, null);
+    return null;
+  }
+}
+
 export async function loadVotos(votacaoId: string): Promise<Record<string, Voto>> {
   const cached = votosCache.get(votacaoId);
   if (cached) {
     return cached;
   }
-  try {
-    const module = (await import(`@/lib/static-votacoes/${fileId(votacaoId)}.generated.json`)) as { default?: { votos: Record<string, Voto> } };
-    const votos = ((module.default ?? module) as { votos: Record<string, Voto> }).votos ?? {};
-    votosCache.set(votacaoId, votos);
-    return votos;
-  } catch {
-    votosCache.set(votacaoId, {});
-    return {};
-  }
+  const detalhe = await loadVotacao(votacaoId);
+  const votos = detalhe?.votos ?? {};
+  votosCache.set(votacaoId, votos);
+  return votos;
 }
 
 export async function loadVereador(id: string): Promise<VereadorDetalhe> {
