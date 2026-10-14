@@ -17,7 +17,10 @@ import {
   getVereadores,
   getVotacoes,
   loadVereador,
+  resultadoClass,
+  resultadoLabel,
   sumVotos,
+  votacaoTitle,
   type Vereador,
   type VereadorDetalhe,
   type Voto
@@ -341,14 +344,14 @@ export function VereadoresExplorer() {
                       <td className="num">{formatDate(votacao!.data)}</td>
                       <td>
                         <Link href={`/votacoes?v=${encodeURIComponent(votacao!.id)}`} className="text-ink hover:underline hover:underline-offset-4">
-                          {votacao!.proposicao.id}
+                          {votacaoTitle(votacao!)}
                         </Link>
                       </td>
                       <td className="max-w-[420px] whitespace-normal break-words text-ash" title={votacao!.proposicao.ementa}>
                         {votacao!.proposicao.ementa.toLowerCase()}
                       </td>
                       <td className={`${linha.voto === "sim" ? "voto-sim" : linha.voto === "nao" ? "voto-nao" : "faint"} ${contra ? "font-medium" : ""}`}>{VOTO_LABELS[linha.voto as Voto] ?? linha.voto}</td>
-                      <td className="faint">{votacao!.resultado ?? "–"}</td>
+                      <td className={resultadoClass(votacao!)}>{resultadoLabel(votacao!)}</td>
                       <td className="num right faint">
                         {votacao!.contagem.sim}–{votacao!.contagem.nao}
                       </td>

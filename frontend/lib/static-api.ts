@@ -37,6 +37,8 @@ export type Votacao = {
   hora: string | null;
   sessao: { tipo: string | null; numero: string | null; fase: string | null } | null;
   proposicao: { id: string; tipo: string; numero: string; ano: number; ementa: string; autores: string[]; autores_ids?: string[] };
+  /** O que foi a voto: veto, emenda, projeto, redacao_final, substitutivo. */
+  objeto?: string | null;
   resultado: string | null;
   contagem: Contagem;
   lado_vencedor: Voto | null;
@@ -75,6 +77,43 @@ export const TIPO_LABELS: Record<string, string> = {
   OFI: "Ofício",
   MSG: "Mensagem"
 };
+
+/** "Veto ao PL-1861/2026", "Emenda ao PL-…", "PL-…": o que estava em votação, não só a proposição. */
+export function votacaoTitle(votacao: Pick<Votacao, "objeto" | "proposicao">): string {
+  const prefix: Record<string, string> = { veto: "Veto ao", emenda: "Emenda ao", redacao_final: "Redação final do", substitutivo: "Substitutivo ao" };
+  const head = prefix[votacao.objeto ?? ""];
+  return head ? `${head} ${votacao.proposicao.id}` : votacao.proposicao.id;
+}
+
+/** Resultado lido com o objeto: num veto, "não" derruba o veto e o projeto segue. */
+export function resultadoLabel(votacao: Pick<Votacao, "objeto" | "resultado">): string {
+  const key = `${votacao.objeto ?? ""}:${votacao.resultado ?? ""}`;
+  const labels: Record<string, string> = {
+    "veto:derrubado": "veto derrubado, projeto segue",
+    "veto:mantido": "veto mantido",
+    "veto:rejeitado": "veto derrubado, projeto segue",
+    "veto:sem_quorum": "sem quórum",
+    "emenda:aprovado": "emenda aprovada",
+    "emenda:rejeitado": "emenda rejeitada",
+    "emenda:prejudicado": "emenda prejudicada",
+    "emenda:sem_quorum": "sem quórum",
+    "projeto:aprovado": "aprovado",
+    "projeto:rejeitado": "rejeitado",
+    "projeto:prejudicado": "prejudicado",
+    "projeto:sem_quorum": "sem quórum",
+    "redacao_final:aprovado": "redação final aprovada",
+    "substitutivo:aprovado": "substitutivo aprovado",
+    "substitutivo:rejeitado": "substitutivo rejeitado"
+  };
+  return labels[key] ?? (votacao.resultado ? votacao.resultado.replace(/_/g, " ") : "não detectado");
+}
+
+/** Lado favorável à proposição: num veto é o "não" (contra o veto). */
+export function resultadoClass(votacao: Pick<Votacao, "objeto" | "resultado">): string {
+  const good = (votacao.objeto === "veto" && (votacao.resultado === "derrubado" || votacao.resultado === "rejeitado")) || (votacao.objeto !== "veto" && votacao.resultado === "aprovado");
+  const bad = (votacao.objeto === "veto" && votacao.resultado === "mantido") || (votacao.objeto !== "veto" && votacao.resultado === "rejeitado");
+  return good ? "voto-sim" : bad ? "voto-nao" : "faint";
+}
 
 export function getMeta() {
   return { generated_at: DATA.generated_at, legislaturas: DATA.legislaturas, stats: DATA.stats, sources: DATA.sources, presenca_meses: DATA.presenca_meses ?? [] };

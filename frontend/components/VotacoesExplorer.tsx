@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useScreenHotkeys } from "@/components/Hotkeys";
 import { EmptyState, Panel, Screen, Stat } from "@/components/ui";
 import { YearSelect, stepYear, type YearSel } from "@/components/YearSelect";
-import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotacao, type VotacaoDetalhe, type Voto } from "@/lib/static-api";
+import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotacao, resultadoClass, resultadoLabel, votacaoTitle, type VotacaoDetalhe, type Voto } from "@/lib/static-api";
 
 type ResultFilter = "todos" | "aprovado" | "rejeitado" | "outros";
 const RESULTS: Array<{ value: ResultFilter; label: string }> = [
@@ -127,11 +127,11 @@ export function VotacoesExplorer() {
             <li key={item.id} role="presentation">
               <button type="button" role="option" aria-selected={item.id === selected.id} onClick={() => setSelectedId(item.id)}>
                 <span className="whitespace-normal break-words">
-                  {item.proposicao.id}
+                  {votacaoTitle(item)}
                   <span className="faint ml-1.5 text-[10px] tracking-[0.08em]">{formatDate(item.data)}</span>
                 </span>
                 <span className="num">
-                  <span className={item.resultado === "aprovado" ? "voto-sim" : item.resultado === "rejeitado" ? "voto-nao" : "faint"}>{item.contagem.sim}–{item.contagem.nao}</span>
+                  <span className={resultadoClass(item)}>{item.contagem.sim}–{item.contagem.nao}</span>
                 </span>
               </button>
             </li>
@@ -142,7 +142,7 @@ export function VotacoesExplorer() {
       <Panel
         title={
           <span>
-            <b>{selected.proposicao.id}</b> · {formatDate(selected.data)}
+            <b>{votacaoTitle(selected)}</b> · {formatDate(selected.data)}
             {selected.sessao?.numero ? ` · ${selected.sessao.numero}` : ""}
           </span>
         }
@@ -160,9 +160,11 @@ export function VotacoesExplorer() {
               {selected.sessao?.tipo ? ` · ${selected.sessao.tipo}` : ""}
               {selected.sessao?.fase ? ` · ${selected.sessao.fase}` : ""}
             </p>
+            {detalhe?.resultado_frase ? <p className="mt-2 text-[12px] leading-5 text-sumi">“{detalhe.resultado_frase.replace(/^O SR\. PRESIDENTE \([^)]*\)\s*[–-]\s*/, "").replace(/^A SRA\. PRESIDENTE \([^)]*\)\s*[–-]\s*/, "")}”</p> : null}
           </div>
           <div>
-            <Stat label="Resultado" value={<span className={selected.resultado === "aprovado" ? "voto-sim" : selected.resultado === "rejeitado" ? "voto-nao" : ""}>{selected.resultado ?? "não detectado"}</span>} />
+            <Stat label="Resultado" value={<span className={resultadoClass(selected)}>{resultadoLabel(selected)}</span>} />
+            <Stat label="Em votação" value={selected.objeto === "veto" ? "veto do prefeito" : selected.objeto === "emenda" ? "emenda" : selected.objeto === "redacao_final" ? "redação final" : selected.objeto === "substitutivo" ? "substitutivo" : "o projeto"} />
             <Stat label="Sim" value={selected.contagem.sim} />
             <Stat label="Não" value={selected.contagem.nao} />
             <Stat label="Abstenções" value={selected.contagem.abstencao} />

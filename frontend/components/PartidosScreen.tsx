@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarList } from "@/components/BarList";
 import { useScreenHotkeys } from "@/components/Hotkeys";
 import { EmptyState, Panel, Screen, Stat } from "@/components/ui";
-import { currentLegislatura, displayName, formatInt, formatPct, getVereadores, getVotacoes, type Vereador, type Votacao } from "@/lib/static-api";
+import { currentLegislatura, displayName, formatInt, formatPct, getVereadores, getVotacoes, votacaoTitle, type Vereador, type Votacao } from "@/lib/static-api";
 
 type Partido = {
   sigla: string;
@@ -166,7 +166,7 @@ export function PartidosScreen() {
           <table className="ruled">
             <thead>
               <tr>
-                <th>Proposição</th>
+                <th>Em votação</th>
                 <th>Data</th>
                 <th className="right">Placar do partido</th>
                 <th className="right">Unanimidade</th>
@@ -177,7 +177,7 @@ export function PartidosScreen() {
                 <tr key={votacao.id}>
                   <td>
                     <Link href={`/votacoes?v=${encodeURIComponent(votacao.id)}`} className="text-ink hover:underline hover:underline-offset-4">
-                      {votacao.proposicao.id}
+                      {votacaoTitle(votacao)}
                     </Link>
                   </td>
                   <td className="num">{votacao.data.split("-").reverse().join("/")}</td>
