@@ -1,0 +1,86 @@
+import type { Metadata } from "next";
+import { Archivo, Shippori_Mincho_B1 } from "next/font/google";
+import Link from "next/link";
+import { Fx } from "@/components/Fx";
+import { Hotkeys } from "@/components/Hotkeys";
+import { SiteNav } from "@/components/SiteNav";
+import { StatusBar } from "@/components/StatusBar";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { getMeta, getVotacoes } from "@/lib/static-api";
+import { cursorVars } from "@/lib/cursors";
+import "./globals.css";
+
+const mincho = Shippori_Mincho_B1({ weight: ["500", "700"], subsets: ["latin"], variable: "--font-mincho", display: "swap" });
+const archivo = Archivo({ subsets: ["latin"], weight: "variable", axes: ["wdth"], variable: "--font-archivo", display: "swap" });
+
+export const SITE_NAME = "Como votou seu vereador";
+const DESCRIPTION =
+  "Câmara Municipal do Rio de Janeiro: votações nominais, presença em plenário e proposições de cada vereador, extraídas das atas e dos sistemas públicos da Câmara.";
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const SITE_URL = `https://g0v.tomoyo.systems${BASE_PATH}`;
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+  description: DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: "Tomoyo", url: "https://tomoyo.systems" }],
+  creator: "Tomoyo",
+  publisher: "Tomoyo",
+  keywords: ["Rio de Janeiro", "Câmara Municipal", "vereadores", "votações nominais", "presença", "dados públicos"],
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", locale: "pt_BR", url: SITE_URL, siteName: SITE_NAME, title: SITE_NAME, description: DESCRIPTION },
+  twitter: { card: "summary", title: SITE_NAME, description: DESCRIPTION },
+  icons: { icon: `${BASE_PATH}/mon.svg`, shortcut: `${BASE_PATH}/mon.svg` }
+};
+
+const THEME_SCRIPT = `(() => {
+  const media = matchMedia('(prefers-color-scheme: dark)');
+  const apply = (dark) => {
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    window.dispatchEvent(new CustomEvent('pp-theme'));
+  };
+  apply(media.matches);
+  media.addEventListener('change', (e) => apply(e.matches));
+})();`;
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const meta = getMeta();
+  const lastMonth = meta.presenca_meses.length ? meta.presenca_meses[meta.presenca_meses.length - 1] : null;
+  const label = `Câmara do Rio · ${getVotacoes().length} votações nominais${lastMonth ? ` · presença até ${lastMonth.slice(5, 7)}/${lastMonth.slice(0, 4)}` : ""}`;
+
+  return (
+    <html
+      lang="pt-BR"
+      className={`${mincho.variable} ${archivo.variable}`}
+      style={cursorVars(BASE_PATH)}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body className="bg-paper text-sumi">
+        <div className="app">
+          <header className="app__header">
+            <span className="flex shrink-0 items-center gap-3 whitespace-nowrap text-ink" data-brand>
+              <a href="https://g0v.tomoyo.systems/" aria-label="g0v.tomoyo.systems" data-brand>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${BASE_PATH}/mon.svg`} alt="" width={28} height={28} className="mon h-[28px] w-[28px] shrink-0" data-brand />
+              </a>
+              <Link href="/" className="wordmark text-[13px] uppercase leading-none" data-brand>
+                {SITE_NAME}
+              </Link>
+            </span>
+            <SiteNav />
+            <ThemeToggle />
+          </header>
+          <main className="app__main">{children}</main>
+          <StatusBar latestLabel={label} />
+        </div>
+        <Hotkeys />
+        <Fx />
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,303 @@
+{
+"@timestamp": "20261014T011727,40Z",
+"@toplevelentries": "4509",
+"viewentry": [
+{
+"@position": "1",
+"@unid": "EB3800632891C21A03258BF6006DE119",
+"@noteid": "1C69D2",
+"@siblings": "4509",
+"entrydata": [
+{
+"@columnnumber": "0",
+"@name": "$12",
+"text": {
+"0": "3734/2024"
+}
+},
+{
+"@columnnumber": "1",
+"@name": "$3",
+"number": {
+"0": "104"
+}
+},
+{
+"@columnnumber": "2",
+"@name": "$2",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "3",
+"@name": "$1",
+"text": {
+"0": "CRIA O BAIRRO ARGENTINO, ATUALMENTE CONHECIDO COMO SUB-BAIRRO DE BRÁS DE PINA, COM DELIMITAÇÃO COMPREENDIDA PELO LOTEAMENTO RESIDENCIAL COM ENTRADA NA AVENIDA MERITI, Nº 3000, QUE INCLUI AS RUAS ALCIDES ROSA, CABO HERCULANO, EMÍLIO MIRANDA E CABO ROCHA. =>20240303734 => {Comissão de Justiça e Redação Comissão de Administração e Assuntos Ligados ao Servidor Público Comissão de Assuntos Urbanos         }"
+}
+},
+{
+"@columnnumber": "4",
+"@name": "$0",
+"datetime": {
+"0": "20241227"
+}
+},
+{
+"@columnnumber": "5",
+"@name": "$8",
+"text": {
+"0": "VEREADORA ROSA FERNANDES"
+}
+},
+{
+"@columnnumber": "6",
+"@name": "$7",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "7",
+"@name": "$13",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "8",
+"@name": "$14",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "9",
+"@name": "$9",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "10",
+"@name": "$15",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "11",
+"@name": "$47",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "12",
+"@name": "$16",
+"text": {
+"0": ""
+}
+}
+]
+},
+{
+"@position": "2",
+"@unid": "87FDCD983C10B9F703258BF0005A6273",
+"@noteid": "1C2572",
+"@siblings": "4509",
+"entrydata": [
+{
+"@columnnumber": "0",
+"@name": "$12",
+"text": {
+"0": "3733/2024"
+}
+},
+{
+"@columnnumber": "1",
+"@name": "$3",
+"number": {
+"0": "104"
+}
+},
+{
+"@columnnumber": "2",
+"@name": "$2",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "3",
+"@name": "$1",
+"text": {
+"0": "ACRESCENTA DISPOSIÇÕES À LEI 6.506 DE 2019 COM VISTA À OBRIGATORIEDADE DE DIVULGAÇÃO, NO PORTAL DA TRANSPARÊNCIA DA PREFEITURA, DE INFORMAÇÕES RELATIVAS AOS COLABORADORES CONTRATADOS POR ORGANIZAÇÕES SOCIAIS, PROJETOS SOCIAIS, ESPORTIVOS E DEMAIS ENTIDADES CONVENIADAS. =>20240303733 => {Comissão de Justiça e Redação Comissão de Administração e Assuntos Ligados ao Servidor Público Comissão de Assistência Social Comissão de Esportes Lazer e Eventos Comissão de Higiene Saúde Pública e Bem-Estar Social Comissão de Educação Comissão de Ciência Tecnologia Comunicação e Informática Comissão de Finanças Orçamento e Fiscalização Financeira    }"
+}
+},
+{
+"@columnnumber": "4",
+"@name": "$0",
+"datetime": {
+"0": "20241227"
+}
+},
+{
+"@columnnumber": "5",
+"@name": "$8",
+"text": {
+"0": "VEREADOR DR. ROGERIO AMORIM"
+}
+},
+{
+"@columnnumber": "6",
+"@name": "$7",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "7",
+"@name": "$13",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "8",
+"@name": "$14",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "9",
+"@name": "$9",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "10",
+"@name": "$15",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "11",
+"@name": "$47",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "12",
+"@name": "$16",
+"text": {
+"0": ""
+}
+}
+]
+},
+{
+"@position": "3",
+"@unid": "2960F44759D584D303258BF6007102F9",
+"@noteid": "1C6B6A",
+"@siblings": "4509",
+"entrydata": [
+{
+"@columnnumber": "0",
+"@name": "$12",
+"text": {
+"0": "3732/2024"
+}
+},
+{
+"@columnnumber": "1",
+"@name": "$3",
+"number": {
+"0": "104"
+}
+},
+{
+"@columnnumber": "2",
+"@name": "$2",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "3",
+"@name": "$1",
+"text": {
+"0": "INSTITUI O PROGRAMA CHEQUE-LIVRO, COMO MEDIDA DE INCENTIVO AOS HÁBITOS DE LEITURA ENTRE OS JOVENS ADULTOS NO MUNICÍPIO DO RIO DE JANEIRO. =>20240303732 => {Comissão de Justiça e Redação Comissão de Administração e Assuntos Ligados ao Servidor Público Comissão de Cultura Comissão de Educação Comissão de Ciência Tecnologia Comunicação e Informática Comissão de Finanças Orçamento e Fiscalização Financeira      }"
+}
+},
+{
+"@columnnumber": "4",
+"@name": "$0",
+"datetime": {
+"0": "20241227"
+}
+},
+{
+"@columnnumber": "5",
+"@name": "$8",
+"text": {
+"0": "VEREADOR VITOR HUGO"
+}
+},
+{
+"@columnnumber": "6",
+"@name": "$7",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "7",
+"@name": "$13",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "8",
+"@name": "$14",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "9",
+"@name": "$9",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "10",
+"@name": "$15",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "11",
+"@name": "$47",
+"text": {
+"0": ""
+}
+},
+{
+"@columnnumber": "12",
+"@name": "$16",
+"text": {
+"0": ""
+}
+}
+]
+}
+]
+}

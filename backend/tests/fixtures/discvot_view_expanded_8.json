@@ -1,0 +1,362 @@
+{
+ "@timestamp": "20261014T012530,00Z",
+ "@toplevelentries": "17",
+ "viewentry": [
+  {
+   "@position": "1",
+   "@noteid": "800306D0",
+   "@children": "8",
+   "@descendants": "2112",
+   "@siblings": "17",
+   "entrydata": [
+    {
+     "@columnnumber": "0",
+     "@name": "$8",
+     "@category": "true",
+     "number": {
+      "0": "2026"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1",
+   "@noteid": "800323E8",
+   "@children": "3",
+   "@descendants": "74",
+   "@siblings": "8",
+   "entrydata": [
+    {
+     "@columnnumber": "1",
+     "@name": "$102",
+     "@category": "true",
+     "text": {
+      "0": "Outubro"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1.1",
+   "@noteid": "800323F4",
+   "@children": "25",
+   "@descendants": "25",
+   "@siblings": "3",
+   "entrydata": [
+    {
+     "@columnnumber": "2",
+     "@name": "$110",
+     "@category": "true",
+     "text": {
+      "0": "13/10"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1.1.1",
+   "@unid": "D0E4E6AC39B4809A03258E8F006C8831",
+   "@noteid": "38DA6",
+   "@siblings": "25",
+   "entrydata": [
+    {
+     "@columnnumber": "3",
+     "@name": "$94",
+     "text": {
+      "0": "Sessão Ordinária"
+     }
+    },
+    {
+     "@columnnumber": "4",
+     "@name": "$95",
+     "text": {
+      "0": "Ordem do Dia"
+     }
+    },
+    {
+     "@columnnumber": "5",
+     "@name": "$55",
+     "number": {
+      "0": "148"
+     }
+    },
+    {
+     "@columnnumber": "6",
+     "@name": "$75",
+     "text": {
+      "0": "Pela Ordem"
+     }
+    },
+    {
+     "@columnnumber": "7",
+     "@name": "$111",
+     "textlist": {
+      "text": [
+       {
+        "0": "...."
+       }
+      ]
+     }
+    },
+    {
+     "@columnnumber": "8",
+     "@name": "$77",
+     "text": {
+      "0": "Vereadores Dr. Rogerio Amorim E Rafael Satiê"
+     }
+    },
+    {
+     "@columnnumber": "9",
+     "@name": "NumSessao",
+     "text": {
+      "0": "81ª Sessão"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1.1.2",
+   "@unid": "9C1DC16249F466EF03258E8F006C54DD",
+   "@noteid": "38DA2",
+   "@siblings": "25",
+   "entrydata": [
+    {
+     "@columnnumber": "3",
+     "@name": "$94",
+     "text": {
+      "0": "Sessão Ordinária"
+     }
+    },
+    {
+     "@columnnumber": "4",
+     "@name": "$95",
+     "text": {
+      "0": "Ordem do Dia"
+     }
+    },
+    {
+     "@columnnumber": "5",
+     "@name": "$55",
+     "number": {
+      "0": "148"
+     }
+    },
+    {
+     "@columnnumber": "6",
+     "@name": "$75",
+     "text": {
+      "0": "Comunicação De Liderança"
+     }
+    },
+    {
+     "@columnnumber": "7",
+     "@name": "$111",
+     "textlist": {
+      "text": [
+       {
+        "0": "...."
+       }
+      ]
+     }
+    },
+    {
+     "@columnnumber": "8",
+     "@name": "$77",
+     "text": {
+      "0": "Vereadora Monica Benicio"
+     }
+    },
+    {
+     "@columnnumber": "9",
+     "@name": "NumSessao",
+     "text": {
+      "0": "81ª Sessão"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1.1.3",
+   "@unid": "F87129A4D0EDE17D03258E8F00621B80",
+   "@noteid": "38D7A",
+   "@siblings": "25",
+   "entrydata": [
+    {
+     "@columnnumber": "3",
+     "@name": "$94",
+     "text": {
+      "0": "Sessão Ordinária"
+     }
+    },
+    {
+     "@columnnumber": "4",
+     "@name": "$95",
+     "text": {
+      "0": "Ordem do Dia"
+     }
+    },
+    {
+     "@columnnumber": "5",
+     "@name": "$55",
+     "number": {
+      "0": "148"
+     }
+    },
+    {
+     "@columnnumber": "6",
+     "@name": "$75",
+     "text": {
+      "0": "Projeto De Lei 882-A/2025 "
+     }
+    },
+    {
+     "@columnnumber": "7",
+     "@name": "$111",
+     "textlist": {
+      "text": [
+       {
+        "0": "...."
+       }
+      ]
+     }
+    },
+    {
+     "@columnnumber": "8",
+     "@name": "$77",
+     "text": {
+      "0": "Vereador Deangeles Percy"
+     }
+    },
+    {
+     "@columnnumber": "9",
+     "@name": "NumSessao",
+     "text": {
+      "0": "81ª Sessão"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1.1.4",
+   "@unid": "A2248EA0DDA9BB8A03258E8F006BDF55",
+   "@noteid": "38D9E",
+   "@siblings": "25",
+   "entrydata": [
+    {
+     "@columnnumber": "3",
+     "@name": "$94",
+     "text": {
+      "0": "Sessão Ordinária"
+     }
+    },
+    {
+     "@columnnumber": "4",
+     "@name": "$95",
+     "text": {
+      "0": "Ordem do Dia"
+     }
+    },
+    {
+     "@columnnumber": "5",
+     "@name": "$55",
+     "number": {
+      "0": "148"
+     }
+    },
+    {
+     "@columnnumber": "6",
+     "@name": "$75",
+     "text": {
+      "0": "Pela Ordem"
+     }
+    },
+    {
+     "@columnnumber": "7",
+     "@name": "$111",
+     "textlist": {
+      "text": [
+       {
+        "0": "...."
+       }
+      ]
+     }
+    },
+    {
+     "@columnnumber": "8",
+     "@name": "$77",
+     "text": {
+      "0": "Vereador Rafael Satiê"
+     }
+    },
+    {
+     "@columnnumber": "9",
+     "@name": "NumSessao",
+     "text": {
+      "0": "81ª Sessão"
+     }
+    }
+   ]
+  },
+  {
+   "@position": "1.1.1.5",
+   "@unid": "42E1DB074F631FE903258E8F006B0605",
+   "@noteid": "38D9A",
+   "@siblings": "25",
+   "entrydata": [
+    {
+     "@columnnumber": "3",
+     "@name": "$94",
+     "text": {
+      "0": "Sessão Ordinária"
+     }
+    },
+    {
+     "@columnnumber": "4",
+     "@name": "$95",
+     "text": {
+      "0": "Ordem do Dia"
+     }
+    },
+    {
+     "@columnnumber": "5",
+     "@name": "$55",
+     "number": {
+      "0": "148"
+     }
+    },
+    {
+     "@columnnumber": "6",
+     "@name": "$75",
+     "text": {
+      "0": "Comunicação De Liderança"
+     }
+    },
+    {
+     "@columnnumber": "7",
+     "@name": "$111",
+     "textlist": {
+      "text": [
+       {
+        "0": "...."
+       }
+      ]
+     }
+    },
+    {
+     "@columnnumber": "8",
+     "@name": "$77",
+     "text": {
+      "0": "Vereador Dr. Rogerio Amorim"
+     }
+    },
+    {
+     "@columnnumber": "9",
+     "@name": "NumSessao",
+     "text": {
+      "0": "81ª Sessão"
+     }
+    }
+   ]
+  }
+ ]
+}
