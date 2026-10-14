@@ -12,3 +12,13 @@ data/photos/
 data/snapshot.json
 .claude/
 *.log
+data/sp/raw/
+data/sp/photos/
+data/sp/snapshot.json
+# Copies of frontend/data/<uf>/ made by frontend/scripts/use-uf.sh before each build
+frontend/lib/static-data.generated.json
+frontend/lib/static-votacoes/
+frontend/lib/static-vereadores/
+frontend/public/fotos/
+frontend/out-cities/
+frontend/out-all/

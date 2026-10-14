@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "use:rj": "sh scripts/use-uf.sh rj",
+    "use:sp": "sh scripts/use-uf.sh sp",
+    "predev": "sh scripts/use-uf.sh",
     "dev": "next dev",
+    "prebuild": "sh scripts/use-uf.sh",
     "build": "next build",
+    "build:all": "sh scripts/build-all.sh",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "sh scripts/use-uf.sh && tsc --noEmit",
     "test": "playwright test",
     "test:visual": "playwright test"
   },

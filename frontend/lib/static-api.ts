@@ -5,6 +5,7 @@
  */
 
 import snapshot from "@/lib/static-data.generated.json";
+import { CITY } from "@/lib/uf";
 
 export type Voto = "sim" | "nao" | "abstencao" | "ausente" | "presidindo";
 export type VotoTotais = Partial<Record<Voto, number>>;
@@ -44,6 +45,8 @@ export type Votacao = {
   lado_vencedor: Voto | null;
   por_partido: Record<string, VotoTotais>;
   fonte: string;
+  /** Assunto como o painel o imprime (São Paulo); usado no título quando o voto não é sobre o texto de uma proposição. */
+  titulo?: string;
 };
 export type Legislatura = { numero: number; inicio: string; fim: string };
 export type Coverage = Record<string, unknown>;
@@ -64,25 +67,32 @@ export type VereadorDetalhe = { votos: VotoLinha[]; proposicoes: ProposicaoLinha
 const DATA = snapshot as unknown as Core;
 
 export const VOTO_LABELS: Record<Voto, string> = { sim: "Sim", nao: "Não", abstencao: "Abstenção", ausente: "Ausente", presidindo: "Presidindo" };
-export const TIPO_LABELS: Record<string, string> = {
-  PL: "Projeto de lei",
-  PLC: "Projeto de lei complementar",
-  PDL: "Projeto de decreto legislativo",
-  PR: "Projeto de resolução",
-  PELOM: "Emenda à Lei Orgânica",
-  REQ: "Requerimento",
-  REQINF: "Requerimento de informação",
-  IND: "Indicação",
-  MOC: "Moção",
-  OFI: "Ofício",
-  MSG: "Mensagem"
-};
+export const TIPO_LABELS: Record<string, string> = CITY.tipoLabels;
 
 /** "Veto ao PL-1861/2026", "Emenda ao PL-…", "PL-…": o que estava em votação, não só a proposição. */
-export function votacaoTitle(votacao: Pick<Votacao, "objeto" | "proposicao">): string {
+export function votacaoTitle(votacao: Pick<Votacao, "objeto" | "proposicao" | "titulo">): string {
   const prefix: Record<string, string> = { veto: "Veto ao", emenda: "Emenda ao", redacao_final: "Redação final do", substitutivo: "Substitutivo ao" };
   const head = prefix[votacao.objeto ?? ""];
+  const onText = head !== undefined || votacao.objeto === "projeto" || !votacao.objeto;
+  if (votacao.titulo && (!votacao.proposicao.id || !onText)) {
+    return votacao.titulo;
+  }
   return head ? `${head} ${votacao.proposicao.id}` : votacao.proposicao.id;
+}
+
+/** "Em votação": o que a votação decidia. */
+export const OBJETO_LABELS: Record<string, string> = {
+  veto: "veto do prefeito",
+  emenda: "emenda",
+  redacao_final: "redação final",
+  substitutivo: "substitutivo",
+  requerimento: "requerimento",
+  eleicao: "eleição da Mesa",
+  contas: "parecer sobre contas",
+  parecer: "parecer"
+};
+export function objetoLabel(objeto: string | null | undefined): string {
+  return OBJETO_LABELS[objeto ?? ""] ?? "o projeto";
 }
 
 /** Resultado lido com o objeto: num veto, "não" derruba o veto e o projeto segue. */
@@ -103,7 +113,13 @@ export function resultadoLabel(votacao: Pick<Votacao, "objeto" | "resultado">): 
     "projeto:sem_quorum": "sem quórum",
     "redacao_final:aprovado": "redação final aprovada",
     "substitutivo:aprovado": "substitutivo aprovado",
-    "substitutivo:rejeitado": "substitutivo rejeitado"
+    "substitutivo:rejeitado": "substitutivo rejeitado",
+    "projeto:pendente": "sem quórum, volta à pauta",
+    "emenda:pendente": "sem quórum, volta à pauta",
+    "substitutivo:pendente": "sem quórum, volta à pauta",
+    "requerimento:pendente": "sem quórum",
+    "requerimento:sem_quorum": "sem quórum",
+    "eleicao:eleito": "eleito"
   };
   return labels[key] ?? (votacao.resultado ? votacao.resultado.replace(/_/g, " ") : "não detectado");
 }

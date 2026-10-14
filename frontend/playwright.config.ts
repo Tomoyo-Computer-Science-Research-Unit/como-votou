@@ -1,4 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import citiesFile from "./data/cities.json";
+
+// Todas as cidades num só servidor, como em produção: a raiz em /, as demais em /<slug>/ (scripts/build-all.sh).
+// metadata.prefix diz a cada projeto onde mora a sua cidade.
+const desktop = { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } };
+// Palco mínimo do site (1280×720): abaixo disso a página rola, o layout não cede.
+const minimo = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } };
 
 export default defineConfig({
   testDir: "./tests",
@@ -13,21 +20,17 @@ export default defineConfig({
     trace: "retain-on-failure"
   },
   webServer: {
-    // Os testes rodam na raiz; o deploy em g0v.tomoyo.systems usa NEXT_PUBLIC_BASE_PATH=/vereadores.
-    command: "NEXT_PUBLIC_BASE_PATH= npm run build && npx serve out -l 4173",
+    // Os testes rodam na raiz; o deploy em g0v.tomoyo.systems usa ROOT=/vereadores.
+    command: "ROOT= sh scripts/build-all.sh && npx serve out-all -l 4173",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000
+    timeout: 300_000
   },
-  projects: [
-    {
-      name: "chromium-desktop",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } }
-    },
-    {
-      // Palco mínimo do site (1280×720): abaixo disso a página rola, o layout não cede.
-      name: "chromium-min",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } }
-    }
-  ]
+  projects: citiesFile.cities.flatMap((city) => {
+    const metadata = { prefix: city.root ? "" : `/${city.slug}`, uf: city.uf, nome: city.nome };
+    return [
+      { name: `${city.slug}-desktop`, use: desktop, metadata },
+      { name: `${city.slug}-min`, use: minimo, metadata }
+    ];
+  })
 });

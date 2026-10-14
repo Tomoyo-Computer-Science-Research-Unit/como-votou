@@ -6,16 +6,17 @@ import { Hotkeys } from "@/components/Hotkeys";
 import { SiteNav } from "@/components/SiteNav";
 import { StatusBar } from "@/components/StatusBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getMeta, getVotacoes } from "@/lib/static-api";
+import { UfSwitch } from "@/components/UfSwitch";
+import { getVotacoes } from "@/lib/static-api";
 import { cursorVars } from "@/lib/cursors";
+import { CITY } from "@/lib/uf";
 import "./globals.css";
 
 const mincho = Shippori_Mincho_B1({ weight: ["500", "700"], subsets: ["latin"], variable: "--font-mincho", display: "swap" });
 const archivo = Archivo({ subsets: ["latin"], weight: "variable", axes: ["wdth"], variable: "--font-archivo", display: "swap" });
 
 export const SITE_NAME = "Vereadores";
-const DESCRIPTION =
-  "Câmara Municipal do Rio de Janeiro: votações nominais, presença em plenário e proposições de cada vereador, extraídas das atas e dos sistemas públicos da Câmara.";
+const DESCRIPTION = CITY.description;
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const SITE_URL = `https://g0v.tomoyo.systems${BASE_PATH}`;
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Tomoyo", url: "https://tomoyo.systems" }],
   creator: "Tomoyo",
   publisher: "Tomoyo",
-  keywords: ["Rio de Janeiro", "Câmara Municipal", "vereadores", "votações nominais", "presença", "dados públicos"],
+  keywords: CITY.keywords,
   alternates: { canonical: "/" },
   openGraph: { type: "website", locale: "pt_BR", url: SITE_URL, siteName: SITE_NAME, title: SITE_NAME, description: DESCRIPTION, images: [{ url: "/icon.png", width: 512, height: 512, alt: SITE_NAME }] },
   twitter: { card: "summary", title: SITE_NAME, description: DESCRIPTION },
@@ -46,9 +47,7 @@ const THEME_SCRIPT = `(() => {
 })();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const meta = getMeta();
-  const lastMonth = meta.presenca_meses.length ? meta.presenca_meses[meta.presenca_meses.length - 1] : null;
-  const label = `Câmara do Rio · ${getVotacoes().length} votações nominais${lastMonth ? ` · presença até ${lastMonth.slice(5, 7)}/${lastMonth.slice(0, 4)}` : ""}`;
+  const label = `${CITY.camaraCurta} · ${getVotacoes().length.toLocaleString("pt-BR")} votações nominais`;
 
   return (
     <html
@@ -76,7 +75,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </Link>
             </span>
             <SiteNav />
-            <ThemeToggle />
+            <span className="flex shrink-0 items-center gap-3">
+              <UfSwitch />
+              <ThemeToggle />
+            </span>
           </header>
           <main className="app__main">{children}</main>
           <StatusBar latestLabel={label} />

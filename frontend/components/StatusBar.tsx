@@ -40,6 +40,9 @@ export function StatusBar({ latestLabel }: { latestLabel: string }) {
           <span className="kbd">1–5</span>telas
         </span>
         <span>
+          <span className="kbd">u</span>cidade
+        </span>
+        <span>
           <span className="kbd">t</span>tema
         </span>
         <span>

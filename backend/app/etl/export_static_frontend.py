@@ -1,7 +1,8 @@
 """Turn data/snapshot.json into the static files the frontend reads.
 
-    python -m app.etl.export_static_frontend [--snapshot data/snapshot.json] [--out frontend/lib] [--fotos frontend/public/fotos]
+    python -m app.etl.export_static_frontend [--uf RJ|SP] [--snapshot ...] [--out frontend/data/<uf>] [--fotos frontend/data/<uf>/fotos]
 
+The frontend build copies frontend/data/<uf>/ into frontend/lib/ and public/fotos/ (scripts/use-uf.sh).
 Writes, under --out:
   static-data.generated.json             everything the list/overview pages need (no per-vereador votes);
                                          shape = types in frontend/lib/static-api.ts
@@ -21,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import config
+from ..cities import city_ufs
 from .aggregates import enrich_votacoes, vereador_aggregates
 
 EMENTA_MAX = 240
@@ -63,8 +65,22 @@ def copy_photo(src: Path, dst: Path) -> None:
         shutil.copyfile(src, dst)
 
 
-def summarize_sources(sources: list[dict]) -> list[dict]:
-    kinds = [
+SOURCE_KINDS_SP = [
+    ("Votações nominais por ano (XML, CMSP)", r"/VOTACOES_\d{4}\.xml"),
+    ("Árvore de sessões plenárias (CMSP)", r"/Presencas\.html"),
+    ("Presença por sessão (XML, CMSP)", r"/PRESENCAS_.+\.xml"),
+    ("SPLegis: vereadores, mandatos e filiações", r"/VereadoresCMSPJSON"),
+    ("SPLegis: ocupação de gabinetes", r"/OcupacaoGabineteJSON"),
+    ("SPLegis: proposições por ano", r"/ProjetosPorAnoJSON"),
+    ("SPLegis: autores das proposições", r"/ProjetosAutoresJSON"),
+    ("Portal da Câmara: páginas dos vereadores", r"/wp-json/wp/v2/vereador"),
+    ("Portal da Câmara: vereadores em exercício", r"/vereadores/membros/"),
+    ("Portal da Câmara: fotos", r"/wp-content/uploads/"),
+]
+
+
+def summarize_sources(sources: list[dict], uf: str = "RJ") -> list[dict]:
+    kinds = SOURCE_KINDS[uf] if uf in SOURCE_KINDS else [
         ("Lista de vereadores (camara.rio)", r"vereadores_atuais\.php|/vereadores/anteriores"),
         ("Frequência mensal (camara.rio)", r"frequencia-dos-vereadores"),
         ("SPL scpro.nsf (proposições 12ª)", r"/scpro\.nsf/"),
@@ -84,6 +100,7 @@ def summarize_sources(sources: list[dict]) -> list[dict]:
 
 def build(snapshot: dict) -> tuple[dict, dict[str, dict], dict[str, dict]]:
     """Return (static_data, per_votacao_files, per_vereador_files) as python objects."""
+    uf = snapshot.get("uf", "RJ")
     legs = snapshot["legislatures"]
     vereadores = snapshot["vereadores"]
     votacoes = enrich_votacoes(sorted(snapshot["votacoes"], key=lambda v: (v["data"] or "", v["id"]), reverse=True), vereadores, legs)
@@ -137,13 +154,15 @@ def build(snapshot: dict) -> tuple[dict, dict[str, dict], dict[str, dict]]:
             "objeto": vt.get("objeto"), "resultado": vt["resultado"], "contagem": vt["contagem"],
             "lado_vencedor": vt["lado_vencedor"], "por_partido": vt["por_partido"], "presidente": vt.get("presidente"),
             "ausentes": sum(1 for x in vt["votos"].values() if x == "ausente"), "fonte": vt["fonte"],
+            **({"titulo": vt["titulo"]} if vt.get("titulo") else {}),
         })
         per_votacao[vt["id"]] = {"id": vt["id"], "data": vt["data"], "hora": vt["hora"], "sessao": vt["sessao"],
                                  "proposicao": p, "objeto": vt.get("objeto"), "resultado": vt["resultado"],
                                  "resultado_frase": vt.get("resultado_frase"), "contagem": vt["contagem"],
                                  "lado_vencedor": vt["lado_vencedor"], "por_partido": vt["por_partido"],
                                  "presidente": vt.get("presidente"), "roster_mes": vt.get("roster_mes"),
-                                 "votos": vt["votos"], "fonte": vt["fonte"]}
+                                 "votos": vt["votos"], "fonte": vt["fonte"],
+                                 **{k: vt[k] for k in ("titulo", "presentes_painel", "impresso", "sem_voto_presentes") if k in vt}}
 
     meses = sorted({f"{r['ano']}-{r['mes']:02d}" for r in presencas})
     prop_por_tipo: Counter = Counter(p["tipo"] for p in proposicoes)
@@ -156,14 +175,7 @@ def build(snapshot: dict) -> tuple[dict, dict[str, dict], dict[str, dict]]:
     for vt in votacoes:
         por_ano_vot[vt["data"][:4]]["votacoes"] += 1
         por_ano_vot[vt["data"][:4]][f"resultado_{vt['resultado'] or 'indefinido'}"] += 1
-    static = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "snapshot_generated_at": snapshot["generated_at"],
-        "legislaturas": legs,
-        "vereadores": vrows,
-        "votacoes": vt_rows,
-        "presenca_meses": meses,
-        "stats": {
+    stats = {
             "votacoes": {"candidatos": vstats.get("candidates_in_range"), "lidos": vstats.get("docs_fetched"),
                          "com_votacao": vstats.get("docs_with_roll_call"), "total": len(votacoes),
                          "sem_resultado": sum(1 for vt in votacoes if not vt["resultado"]),
@@ -180,10 +192,51 @@ def build(snapshot: dict) -> tuple[dict, dict[str, dict], dict[str, dict]]:
                             "sem_autor_casado": sum(1 for p in proposicoes if not p.get("autores_ids")
                                                     and any(not _inst(a) for a in p["autores"]))},
             "nomes_nao_casados": nomes,
-        },
-        "sources": summarize_sources(snapshot["sources"]),
+    }
+    if uf in STATS_BUILDERS:      # cities whose sources give other coverage counts than Rio's
+        stats = STATS_BUILDERS[uf](snapshot, votacoes, presencas, proposicoes, meses, prop_por_tipo, prop_por_ano, por_ano_vot)
+    static = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "snapshot_generated_at": snapshot["generated_at"],
+        "legislaturas": legs,
+        "vereadores": vrows,
+        "votacoes": vt_rows,
+        "presenca_meses": meses,
+        "stats": stats,
+        "sources": summarize_sources(snapshot["sources"], uf),
     }
     return static, per_votacao, per_vereador
+
+
+def sp_stats(snapshot: dict, votacoes: list[dict], presencas: list[dict], proposicoes: list[dict], meses: list[str],
+             prop_por_tipo: Counter, prop_por_ano: dict, por_ano_vot: dict) -> dict:
+    """Coverage block for São Paulo: same top-level keys as Rio, with the counts SP sources allow."""
+    vs = snapshot["stats"]["votacoes"]
+    ps = snapshot["stats"]["presenca"]
+    presentes_sem_voto = sum(len(vt.get("sem_voto_presentes") or []) for vt in votacoes)
+    ausentes = sum(1 for vt in votacoes for x in vt["votos"].values() if x == "ausente")
+    return {
+        "votacoes": {"total": len(votacoes), "simbolicas_fora": sum(vs.get("simbolicas_no_periodo", {}).values()),
+                     "anuladas_fora": vs.get("anuladas", 0),
+                     "sem_resultado": sum(1 for vt in votacoes if not vt["resultado"]),
+                     "impresso_discrepancies": len(vs.get("impresso_discrepancies", [])),
+                     "ausencias": ausentes, "ausencias_presentes_na_sessao": presentes_sem_voto,
+                     "sem_lista_de_presenca": vs.get("sessao_sem_presenca", 0),
+                     "por_ano": {y: dict(c) for y, c in sorted(por_ano_vot.items())}},
+        "presenca": {"sessoes": ps.get("sessoes_lidas"), "sessoes_sem_arquivo": len(ps.get("sessoes_sem_arquivo", [])),
+                     "meses_com_dado": len(meses), "primeiro_mes": meses[0] if meses else None,
+                     "ultimo_mes": meses[-1] if meses else None, "linhas": len(presencas),
+                     "marcas": ps.get("marcas", {})},
+        "proposicoes": {"total": len(proposicoes), "por_tipo": dict(prop_por_tipo),
+                        "por_ano": {y: dict(c) for y, c in sorted(prop_por_ano.items())},
+                        "sem_autor_vereador": sum(1 for p in proposicoes if not p.get("autores_ids"))},
+        "nomes_nao_casados": [],
+    }
+
+
+# Per-city source labels and coverage blocks; Rio uses the defaults written inline above.
+SOURCE_KINDS = {"SP": SOURCE_KINDS_SP}
+STATS_BUILDERS = {"SP": sp_stats}
 
 
 def _inst(a: str) -> bool:
@@ -193,11 +246,15 @@ def _inst(a: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--snapshot", type=Path, default=config.SNAPSHOT_PATH)
-    ap.add_argument("--out", type=Path, default=config.PROJECT_DIR / "frontend" / "lib")
-    ap.add_argument("--fotos", type=Path, default=config.PROJECT_DIR / "frontend" / "public" / "fotos")
+    ap.add_argument("--uf", choices=city_ufs(), default="RJ", type=str.upper)
+    ap.add_argument("--snapshot", type=Path, default=None, help="default: data/snapshot.json (RJ), data/sp/snapshot.json (SP)")
+    ap.add_argument("--out", type=Path, default=None, help="default: frontend/data/<uf>")
+    ap.add_argument("--fotos", type=Path, default=None, help="default: frontend/data/<uf>/fotos")
     ap.add_argument("--no-fotos", action="store_true")
     args = ap.parse_args(argv)
+    args.snapshot = args.snapshot or config.snapshot_path(args.uf)
+    args.out = args.out or config.FRONTEND_DATA_DIR / args.uf.lower()
+    args.fotos = args.fotos or args.out / "fotos"
 
     snapshot = json.loads(args.snapshot.read_text())
     static, per_votacao, per_vereador = build(snapshot)
@@ -214,9 +271,11 @@ def main(argv: list[str] | None = None) -> int:
     log(f"static-vereadores/: {len(per_vereador)} files, {n_ver/1024:.0f} KB")
     if not args.no_fotos:
         n = 0
+        if args.fotos.exists():
+            shutil.rmtree(args.fotos)
         for v in snapshot["vereadores"]:
             if v.get("foto"):
-                src = config.DATA_DIR / v["foto"]
+                src = config.photos_dir(args.uf).parent / v["foto"]
                 if src.exists():
                     copy_photo(src, args.fotos / src.name)
                     n += 1

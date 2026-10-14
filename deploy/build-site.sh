@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Roda no droplet, por cron, uma vez por dia: puxa main, lê de novo as páginas da Câmara que mudam
-# (sessões novas, frequência dos meses recentes), regenera os dados e, se o código ou os dados
-# mudaram desde o último build, constrói o site e troca os arquivos em /root/g0v/site/vereadores.
+# Roda no droplet, por cron, uma vez por dia: puxa main e, para cada cidade de
+# frontend/data/cities.json, relê o que muda na Câmara e regenera os dados. Se o código ou os dados
+# mudaram desde o último build, constrói todas as cidades: a cidade raiz (Rio) em
+# /root/g0v/site/vereadores e cada uma das demais em /root/g0v/site/vereadores/<slug>. A falha do
+# ETL de uma cidade não derruba as outras: ela segue com os dados commitados em main.
 # Falhas avisam por e-mail.
 #
 #   /root/g0v/build-vereadores.sh               # só reconstrói se algo mudou
@@ -64,21 +66,31 @@ PY="$SRC/backend/.venv/bin/python"
 [ -x "$PY" ] || uv venv -q --python 3.12 "$SRC/backend/.venv"
 uv pip install -q --python "$PY" -e "$SRC/backend"
 
-if [ "${SKIP_DATA:-0}" != "1" ]; then
-  if etl_output="$(cd "$SRC/backend" && "$PY" -m app.etl.export_snapshot --all 2>&1 && "$PY" -m app.etl.export_static_frontend 2>&1)"; then
-    log "ETL ok"
+run_etl() {   # $1 = sigla da cidade (cities.json)
+  local uf="$1" lower etl_output
+  lower="$(echo "$uf" | tr 'A-Z' 'a-z')"
+  if etl_output="$(cd "$SRC/backend" && "$PY" -m app.etl.export_snapshot --uf "$uf" --all 2>&1 && "$PY" -m app.etl.export_static_frontend --uf "$uf" 2>&1)"; then
+    log "ETL $uf ok"
   else
-    log "ETL falhou; usando os arquivos commitados em main"
-    note="ETL falhou"
-    notify "[como-votou] ETL falhou" "$(printf '%s\n\n%s' "A leitura da Câmara falhou; o site segue com os dados de main." "$etl_output" | tail -c 6000)"
-    git -C "$SRC" checkout -q -- frontend/lib frontend/public
+    log "ETL $uf falhou; usando os arquivos commitados em main"
+    note="${note:+$note; }ETL $uf falhou"
+    notify "[como-votou] ETL $uf falhou" "$(printf '%s\n\n%s' "A leitura da Câmara ($uf) falhou; essa cidade segue com os dados de main." "$etl_output" | tail -c 6000)"
+    git -C "$SRC" checkout -q -- "frontend/data/$lower" && git -C "$SRC" clean -fdq -- "frontend/data/$lower"
   fi
+}
+
+CITIES="$(python3 -c 'import json,sys; [print(c["uf"], c["slug"], int(bool(c.get("root")))) for c in json.load(open(sys.argv[1]))["cities"]]' "$SRC/frontend/data/cities.json")"
+
+if [ "${SKIP_DATA:-0}" != "1" ]; then
+  while read -r uf _slug _root; do
+    run_etl "$uf"
+  done <<< "$CITIES"
 fi
 
 key="$rev $(cd "$SRC" && "$PY" - <<'PY'
 import hashlib, json, pathlib
 h = hashlib.sha256()
-for name in sorted(str(p) for p in pathlib.Path("frontend/lib").rglob("*.generated.json")):
+for name in sorted(str(p) for p in pathlib.Path("frontend/data").rglob("*.generated.json")):
     data = json.loads(pathlib.Path(name).read_text(encoding="utf-8"))
     if isinstance(data, dict):
         data.pop("generated_at", None)
@@ -97,9 +109,19 @@ if [ "${FORCE:-0}" != "1" ] && [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$key" ]; 
 fi
 
 log "construindo ($key)"
-(cd "$SRC/frontend" && npm ci --no-audit --no-fund --silent && rm -rf out .next && NEXT_PUBLIC_BASE_PATH="$BASE_PATH" npm run build --silent >/dev/null)
+(cd "$SRC/frontend" && npm ci --no-audit --no-fund --silent && ROOT="$BASE_PATH" sh scripts/build-all.sh >/dev/null)
+# A cidade raiz no slug sem apagar as pastas das outras; cada uma das demais na sua pasta.
+excludes=()
+while read -r _uf slug isroot; do
+  [ "$isroot" = 1 ] || excludes+=("--exclude=/$slug/")
+done <<< "$CITIES"
 mkdir -p "$DIR/site$BASE_PATH"
-rsync -a --delete --chmod=D755,F644 "$SRC/frontend/out/" "$DIR/site$BASE_PATH/"
+rsync -a --delete "${excludes[@]}" --chmod=D755,F644 "$SRC/frontend/out-all/" "$DIR/site$BASE_PATH/"
+while read -r _uf slug isroot; do
+  [ "$isroot" = 1 ] && continue
+  mkdir -p "$DIR/site$BASE_PATH/$slug"
+  rsync -a --delete --chmod=D755,F644 "$SRC/frontend/out-all/$slug/" "$DIR/site$BASE_PATH/$slug/"
+done <<< "$CITIES"
 echo "$key" > "$MARK"
 record "publicado" "$note"
 log "publicado ($key)"

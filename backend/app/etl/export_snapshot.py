@@ -3,6 +3,7 @@
     python -m app.etl.export_snapshot --all            # daily: both legislatures, no doc budget, refresh index pages
     python -m app.etl.export_snapshot --offline        # rebuild from the raw cache only (no network)
     python -m app.etl.export_snapshot [--max-docs N] [--from-year 2021] [--presenca-from 2021]
+    python -m app.etl.export_snapshot --uf SP --all    # Câmara Municipal de São Paulo (app/etl/snapshot_sp.py)
 
 Every response is cached under data/raw/. A re-run only hits the network for pages that can
 change (roster, current SPL views, the newest months of the session index, the current-year
@@ -21,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import config
+from ..cities import adapter, city_ufs
 from ..http import Downloader
 from ..names import NameResolver, has_others, is_institutional, norm, slug, split_authors
 from ..parsers.discvot import MONTHS, SessaoItem, parse_item, parse_search_unids, parse_session_doc, parse_view_items
@@ -366,6 +368,7 @@ def resolve_authors(autores: list[str], resolver: NameResolver) -> tuple[list[st
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--uf", choices=city_ufs(), default="RJ", type=str.upper, help="city (frontend/data/cities.json); RJ by default")
     ap.add_argument("--all", action="store_true", help="daily mode: --from-year 2021 --presenca-from 2021 --max-docs 0")
     ap.add_argument("--max-docs", type=int, default=600, help="max discvot session documents to read (0 = no limit)")
     ap.add_argument("--from-year", type=int, default=2025, help="first year for votações/proposições")
@@ -374,10 +377,16 @@ def main(argv: list[str] | None = None) -> int:
                     help="also re-pull attendance months from this one on (abonos change retroactively)")
     ap.add_argument("--offline", action="store_true", help="never touch the network; rebuild from data/raw only")
     ap.add_argument("--no-refresh", action="store_true", help="do not re-fetch index pages (roster, SPL views, newest months)")
-    ap.add_argument("--out", type=Path, default=config.SNAPSHOT_PATH)
+    ap.add_argument("--out", type=Path, default=None, help="default: data/snapshot.json (RJ), data/sp/snapshot.json (SP)")
     args = ap.parse_args(argv)
     if args.all:
         args.from_year, args.presenca_from, args.max_docs = 2021, 2021, 0
+    if args.out is None:
+        args.out = config.snapshot_path(args.uf)
+    if args.uf != "RJ":      # every other city has its own source adapter (app/cities.py)
+        if args.presenca_refresh_from and len(args.presenca_refresh_from) == 7:
+            args.presenca_refresh_from += "-01"
+        return adapter(args.uf)(args)
     refresh = not (args.offline or args.no_refresh)
     refresh_from = None
     if args.presenca_refresh_from:

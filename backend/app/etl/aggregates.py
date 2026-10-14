@@ -85,7 +85,9 @@ def enrich_votacoes(votacoes: list[dict], vereadores: list[dict], legislaturas: 
     out = []
     for vt in votacoes:
         leg = vt.get("legislatura") or legislatura_of(vt.get("data"), legislaturas)
-        party_by_id = {vid: party_of(by_id[vid], leg) if vid in by_id else None for vid in vt["votos"]}
+        # SP prints each voter's party on the vote itself ("partidos"); use it when present.
+        printed = vt.get("partidos") or {}
+        party_by_id = {vid: printed.get(vid) or (party_of(by_id[vid], leg) if vid in by_id else None) for vid in vt["votos"]}
         e = dict(vt)
         e["legislatura"] = leg
         e["lado_vencedor"] = lado_vencedor(vt["contagem"])

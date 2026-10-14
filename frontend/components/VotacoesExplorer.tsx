@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useScreenHotkeys } from "@/components/Hotkeys";
 import { EmptyState, Panel, Screen, Stat } from "@/components/ui";
 import { YearSelect, stepYear, type YearSel } from "@/components/YearSelect";
-import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotacao, resultadoClass, resultadoLabel, votacaoTitle, type VotacaoDetalhe, type Voto } from "@/lib/static-api";
+import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotacao, objetoLabel, resultadoClass, resultadoLabel, votacaoTitle, type VotacaoDetalhe, type Voto } from "@/lib/static-api";
+import { CITY } from "@/lib/uf";
 
 type ResultFilter = "todos" | "aprovado" | "rejeitado" | "outros";
 const RESULTS: Array<{ value: ResultFilter; label: string }> = [
@@ -148,7 +149,7 @@ export function VotacoesExplorer() {
         }
         aside={
           <a href={selected.fonte} target="_blank" rel="noreferrer" className="btn !h-7 !px-2 text-[10px]">
-            Ata
+            {CITY.fonteVotacao}
           </a>
         }
       >
@@ -164,7 +165,7 @@ export function VotacoesExplorer() {
           </div>
           <div>
             <Stat label="Resultado" value={<span className={resultadoClass(selected)}>{resultadoLabel(selected)}</span>} />
-            <Stat label="Em votação" value={selected.objeto === "veto" ? "veto do prefeito" : selected.objeto === "emenda" ? "emenda" : selected.objeto === "redacao_final" ? "redação final" : selected.objeto === "substitutivo" ? "substitutivo" : "o projeto"} />
+            <Stat label="Em votação" value={objetoLabel(selected.objeto)} />
             <Stat label="Sim" value={selected.contagem.sim} />
             <Stat label="Não" value={selected.contagem.nao} />
             <Stat label="Abstenções" value={selected.contagem.abstencao} />

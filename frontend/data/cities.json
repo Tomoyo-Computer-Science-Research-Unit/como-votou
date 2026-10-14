@@ -1,0 +1,7 @@
+{
+  "_doc": "Cidades publicadas, na ordem do seletor do cabeçalho. slug = uf em minúsculas (é o nome da pasta de dados frontend/data/<slug>). A cidade com root=true mora em /vereadores/; as demais em /vereadores/<slug>/. Cada uma precisa de um adaptador de fonte no backend (backend/app/cities.py) e de textos em frontend/lib/uf.ts. Lido pelo ETL, pelo frontend, pelos scripts de build e pelo deploy.",
+  "cities": [
+    { "uf": "RJ", "slug": "rj", "nome": "Rio de Janeiro", "root": true },
+    { "uf": "SP", "slug": "sp", "nome": "São Paulo", "root": false }
+  ]
+}

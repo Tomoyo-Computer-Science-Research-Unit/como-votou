@@ -1,5 +1,7 @@
 # Como votou seu vereador — data sources of the Câmara Municipal do Rio de Janeiro
 
+(São Paulo is documented after the Rio sections; other capitals at the end.)
+
 Research date: 2026-10-13/14. All requests sent with User-Agent
 `tomoyo-g0v-research (contact: g0v@tomoyo.systems)`, one request per second, every
 response cached under `data/raw/<host>/<sha1>.body` with a `.json` sidecar (URL, method,
@@ -259,3 +261,132 @@ session documents never read before (≈ 54 requests + new documents, at 1 req/s
 `--presenca-refresh-from 2026-01` once a month or so, because abonos change past months.
 `--offline` rebuilds the snapshot from the cache without any request (useful after parser
 changes); `--no-refresh` keeps the network for new documents only.
+
+---
+
+# São Paulo — data sources of the Câmara Municipal de São Paulo (CMSP)
+
+Research and first full run: 2026-10-14. Same politeness rules as Rio (User-Agent
+`tomoyo-g0v-research (contact: g0v@tomoyo.systems)`, 1 request/s, every response cached under
+`data/raw/<host>/` with a sidecar). Snapshot `data/sp/snapshot.json`
+(`cd backend && .venv/bin/python -m app.etl.export_snapshot --uf SP --all`), frontend files
+`frontend/data/sp/` (`.venv/bin/python -m app.etl.export_static_frontend --uf SP`). Code:
+`backend/app/parsers/cmsp.py`, `backend/app/etl/snapshot_sp.py`.
+
+## Summary
+
+Unlike Rio, the CMSP publishes structured data, and every source carries the same SPLegis
+parliamentary id (`IDParlamentar` / `chave` / `_cmsp_vereador_consulta_splegis_id`). The ETL joins
+by that id; there is no name matching. The index page is
+`https://www.saopaulo.sp.leg.br/transparencia/dados-abertos/dados-disponibilizados-em-formato-aberto/`.
+
+| Entity | Source | Format | Coverage |
+|---|---|---|---|
+| Nominal votes | `https://splegispdarmazenamento.blob.core.windows.net/containersip/VOTACOES_<ano>.xml` (the "Baixar arquivo em padrão de dados abertos (XML)" link of the page `.../atividade-legislativa/sessao-plenaria/votacao-em-plenario/`, which iframes `.../containersip/Votacoes.html`) | XML, one file per year (0.2–0.9 MB) | Aug 2012 → today |
+| Session list | `.../containersip/Presencas.html` (and `Votacoes.html`): jsTree with `data_app_id="SESSAO dd_mm_aaaa Nª Sessão Tipo"` | HTML | 2,310 sessions, Aug 2012 → today |
+| Presence per session | `.../containersip/PRESENCAS_<dd_mm_aaaa>_<Tipo>_<n>.xml` (e.g. `PRESENCAS_04_02_2025_Ordinária_1.xml`, URL-encoded) | XML, one per session | every session in the tree |
+| Vereadores | SPLegis web service `https://splegisws.saopaulo.sp.leg.br/ws/ws2.asmx/VereadoresCMSPJSON` | JSON, 1.7 MB | 364 people since 1948: `mandatos` (start/end, party), `filiacoes` (party changes with dates), `cargos` |
+| Gabinetes | `.../ws2.asmx/OcupacaoGabineteJSON` | JSON | gabinete number per legislature |
+| Proposições | `.../ws2.asmx/ProjetosPorAnoJSON?Ano=<ano>` (ementa, date; every document type, ~51,000 rows and 10 MB for 2025) and `.../ws2.asmx/ProjetosAutoresJSON?ano=<ano>&tipo=<sigla>&numero=` (empty `numero` returns all of that type and year, with author ids) | JSON | SPLegis, 1992 → today (older ones as `.txt` files on the open-data page) |
+| Names, photos, pages | Portal WordPress REST `https://www.saopaulo.sp.leg.br/wp-json/wp/v2/vereador?per_page=100&page=N` (`meta_all._cmsp_vereador_consulta_splegis_id`, `_cmsp_vereador_name`, `_cmsp_vereador_image`, `link`) and `/vereadores/membros/` (55 cards of the vereadores in office) | JSON / HTML | 191 posts, 144 with an SPLegis id, current and former vereadores |
+
+The web service lists 25 methods (`ws2.asmx`, each with a `JSON` twin): projects, authors,
+committees, audiences, agendas, vetoed and approved laws by promoter, office occupancy. It has no
+vote or presence method; those live only in the blob storage above. `ProjetosAutoresJSON` with an
+empty `tipo` fails with a .NET stack trace (`Sequence contains no elements`); `tipo` is required.
+`VOTACOES_<dd_mm_aaaa>_<Tipo>_<n>.xml` (per session) does not exist (404), only the `.html` of the
+same name, which the site links as the source of each vote.
+
+## Nominal votes
+
+`<Sessao Nome="9ª Sessão Ordinária" Data="20/02/2025"><Votacao VotacaoID TipoVotacao="Nominal|Simbólica"
+Materia Ementa Resultado Presentes Sim Nao Abstencao Branco NotasRodape><Vereador Nome Partido
+IDParlamentar Voto="Sim|Não|Abstenção"/>…`. Symbolic votes carry no `Vereador` rows (some carry
+`<VotoContrario Partido_Vereador="NOME - PARTIDO"/>` for declared dissent); they are left out, as
+in Rio. Only vereadores who voted are listed; `Presentes` is the painel count at the time of the vote.
+
+Per vote the ETL derives:
+
+- `objeto` from the subject line (`Materia`): `projeto`, `substitutivo` (a PL voted with a
+  committee substitute, from `NotasRodape`), `emenda` (amendments and blocks of amendments),
+  `veto` ("Rejeição aos vetos" / "Manutenção aos vetos"; `resultado` becomes `derrubado`/`mantido`),
+  `redacao_final`, `contas` (TCM opinions on the accounts of the Executive and of the TCM,
+  `DOCREC`), `parecer`, `eleicao` (Mesa, corregedor), `requerimento` (adjournment, suspension or
+  extension of the session, agenda changes, CPI creation, reading of papers). 125 of the 408 nominal
+  votes are procedural requerimentos; Rio's parser keeps such votes only when they name a proposição.
+- `resultado`: Aprovado → `aprovado`; Reprovado/Rejeitado → `rejeitado`; "Sem quórum"/"Sem Quorum
+  Suficiente" → `sem_quorum`; "Pendente de Votação" → `pendente` (the nominal vote did not reach the
+  quorum and the matter stays on the agenda); "Eleito X" → `eleito`.
+- `fase` (1ª/2ª discussão) from `NotasRodape` ("volta em 2º", "FASE DA DISCUSSÃO: 2ª", "Vai à sanção").
+- `proposicao` from the first `PL|PLO|PDL|PR|RDP|RPP|DOCREC N/AAAA` in the subject line; authors from
+  `ProjetosAutoresJSON` (one cached call for bills presented before 2021).
+- `partidos`: each voter's party as printed on the vote; `por_partido` uses it (Rio uses the party
+  of the legislature).
+- `votos`: sim/nao/abstencao from the XML; then `ausente` for every vereador in office at that
+  session who did not vote. **In office = has a row in that session's presence list with any mark
+  other than `*`**. Rio infers the roster from the monthly attendance table; SP uses the session
+  itself. The per-vote file also keeps `sem_voto_presentes` (ids marked present at the session who
+  did not vote; this includes the presiding officer, whom the painel does not name, so no SP vote has
+  `presidindo`).
+
+## Presence
+
+`<Presencas TipoDaSessao NumeroDaSessao NomeDaSessao Data/><Vereador Nome IDParlamentar Partido Presenca/>`.
+Marks seen 2021-02 → 2026-10: `Presente` 44,160; `Licença<sup>n</sup>` 541 (n = article 112 reason:
+1 illness, 3 municipal mission, 4 private interest…); blank 1,289 (unexcused absence); `*` = suplente
+not in office that day or vereador who resigned (excluded). The legend also defines "Justificação"
+codes 6–9, but no session in the period carries one. The yearly and monthly XMLs
+(`PRESENCAS_2025.xml`, `PRESENCAS_03_2025.xml`) list only ordinary sessions, by day; the ETL uses the
+per-session files, which cover ordinary and extraordinary sessions.
+
+Contract mapping (monthly rows, same shape as Rio): `faltas` = blank marks, `faltas_abonadas` =
+licenças + justificações, `total_faltas` = both, plus `sessoes`, `presencas`, `licencas`,
+`justificadas`. Sessions of the last 45 days are re-read every run; `--presenca-refresh-from AAAA-MM-DD`
+re-reads older ones.
+
+## Run results (2026-10-14, `export_snapshot --uf SP --all`)
+
+Cold cache: 1,023 requests, about 25 minutes (836 session files at roughly 0.5 s of server time plus
+the 1 s delay). Daily re-run: the session tree, the current year's votes XML, sessions of the last
+45 days (about 20), the vereador sources and the current year's proposições (9 requests, ~11 MB):
+about 40 requests, under a minute plus new sessions.
+
+| Entity | Rows | Notes |
+|---|---|---|
+| vereadores | 100 | everyone with a presence mark other than `*`, or a vote, from 2021: 79 in the 18ª legislature (2021–2024), 63 in the 19ª (2025–2028), 42 in both. 55 in office (present in the session list of 2026-10-13; matches the 55 cards on `/vereadores/membros/`). 98 with photo from the portal, former vereadores included; 2 without (Armandinho Ferreiro, Felipe Franco) get initials |
+| votações nominais | 408 | 2021: 112 · 2022: 68 · 2023: 36 · 2024: 83 · 2025: 98 · 2026: 11 (one 2021 vote marked "Votação ANULADA" is dropped). Symbolic votes left out: 2,884 (2021 663, 2022 459, 2023 526, 2024 381, 2025 515, 2026 340). objeto: 125 requerimento, 122 projeto, 54 emenda, 50 substitutivo, 29 eleicao, 24 contas, 2 veto, 1 redacao_final, 1 parecer. resultado: 298 aprovado, 81 rejeitado, 19 pendente, 7 sem_quorum, 1 derrubado, 1 mantido, 1 eleito; 0 undetected |
+| — individual entries | 22,443 | 13,306 sim, 4,747 não, 260 abstenção, 4,130 ausente (3,347 of them marked present at the session; 783 absent from it or on licence) |
+| — consistency | 42 | votes where the printed `Sim`/`Nao`/`Abstencao` differ from the listed names (41 by one vote, 1 by two; 24 of them in 2021). `contagem` counts the names. All 408 votes found their session's presence list |
+| presence | 836 sessions | 2021-02 → 2026-10, 0 files missing; 3,347 vereador-month rows; 1,289 unexcused absences, 541 licences |
+| proposições | 9,828 | from 2021, types PL 5,621 · IND 2,611 · PDL 691 · MOC 317 · PR 305 · RDP 175 · RPP 72 · PLO 36; per year 2021 1,940 · 2022 1,060 · 2023 1,200 · 2024 1,399 · 2025 2,748 · 2026 1,481. 221 without a vereador author (Executive "RICARDO NUNES" 127, Mesa 32, committees, TCM) |
+
+Left out on purpose: RDS/RPS requerimentos (about 2,000 a year in 2025; 647 agenda inclusions,
+520 coauthorship requests, votes of praise, licence requests) and the internal document types
+(DSP, ARQ, CV, REGTAQ, LISTPRE…), which make up most of the 51,342 rows of `ProjetosPorAno` 2025.
+
+Frontend files: `static-data.generated.json` 724 KB; `static-votacoes/` 408 files, 974 KB;
+`static-vereadores/` 100 files, 9.5 MB; `fotos/` 98 files, 466 KB.
+
+## Caveats (SP)
+
+1. "Ausente" in SP means "in office at the session, no vote on the painel". 81% of those
+   entries are vereadores who signed in at the session and did not vote: they may have left the
+   floor, abstained by not voting, or presided. The painel does not record obstruction.
+2. Party per legislature (`partidos_por_legislatura`) is the party printed on the latest vote or
+   presence row of that legislature, falling back to the SPLegis affiliation in force at the end
+   of it. Party switches inside a legislature (the 2024 window) show on the votes, not on the list.
+3. `objeto`/`fase` come from free text the painel operator types (`Materia`, `NotasRodape`);
+   subject lines are cut at about 50 characters and end in "..." (the site drops the dots).
+4. The yearly votes XML is rewritten during the year; votes of the current year are re-read daily.
+5. Proposições are counted by presentation year (from 2021) and joined to authors by id.
+
+## Daily run (SP)
+
+```
+cd /home/arete/Work/como-votou/backend \
+  && .venv/bin/python -m app.etl.export_snapshot --uf SP --all \
+  && .venv/bin/python -m app.etl.export_static_frontend --uf SP
+```
+
+`--offline` rebuilds from `data/raw` only; `--no-refresh` reads only what is not cached. The server
+script `deploy/build-site.sh` runs this for every city of `frontend/data/cities.json`.

@@ -20,3 +20,22 @@ CA_BUNDLE = BACKEND_DIR / "app" / "cabundle.pem"
 CAMARA = "https://www.camara.rio"
 SPL = "https://aplicnt.camara.rj.gov.br/APL/Legislativos"
 DISCVOT_VIEW = f"{SPL}/discvot.nsf/5d50d39bd976391b83256536006a2502"
+
+# --- Per-UF output locations ------------------------------------------------------------------
+# RJ keeps the paths it always had (data/snapshot.json, data/photos); every other city lives under data/<uf>/.
+FRONTEND_DATA_DIR = PROJECT_DIR / "frontend" / "data"
+
+
+def snapshot_path(uf: str) -> Path:
+    return SNAPSHOT_PATH if uf.upper() == "RJ" else DATA_DIR / uf.lower() / "snapshot.json"
+
+
+def photos_dir(uf: str) -> Path:
+    return DATA_DIR / "photos" if uf.upper() == "RJ" else DATA_DIR / uf.lower() / "photos"
+
+
+# --- Câmara Municipal de São Paulo (CMSP) ------------------------------------------------------
+CMSP_PORTAL = "https://www.saopaulo.sp.leg.br"
+CMSP_BLOB = "https://splegispdarmazenamento.blob.core.windows.net/containersip"   # Votacoes.html / Presencas.html and their XML
+CMSP_WS = "https://splegisws.saopaulo.sp.leg.br/ws/ws2.asmx"                       # SPLegis web service
+CMSP_WP = f"{CMSP_PORTAL}/wp-json/wp/v2/vereador"                                  # portal pages of each vereador (photo, name)
