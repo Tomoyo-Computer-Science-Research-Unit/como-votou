@@ -998,3 +998,8 @@ input.yearselect::placeholder {
 :root:not([data-theme="dark"]) .theme-dark {
   display: none;
 }
+
+/* Discord flutuante do g0v: acima da barra de status. */
+:root {
+  --g0v-discord-bottom: 34px;
+}
