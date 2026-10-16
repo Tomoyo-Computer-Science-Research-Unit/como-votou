@@ -1,11 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
-import citiesFile from "./data/cities.json";
 
-// Todas as cidades num só servidor, como em produção: a raiz em /, as demais em /<slug>/ (scripts/build-all.sh).
-// metadata.prefix diz a cada projeto onde mora a sua cidade.
+// Um só build serve todas as cidades: Rio na raiz, São Paulo em /sp/, os municípios do Estado do
+// Rio em /rj/<slug>/. Cada projeto testa uma cidade; metadata.prefix diz onde ela mora e
+// metadata.nivel o que ela publica (0 = só vereadores, pelo TSE; 3 = votos nominais).
 const desktop = { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } };
 // Palco mínimo do site (1280×720): abaixo disso a página rola, o layout não cede.
 const minimo = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } };
+
+const CIDADES = [
+  { slug: "rio", prefix: "", nome: "Rio de Janeiro", nivel: 3 },
+  { slug: "sp", prefix: "/sp", nome: "São Paulo", nivel: 3 },
+  { slug: "niteroi", prefix: "/rj/niteroi", nome: "Niterói", nivel: 0 },
+  { slug: "macuco", prefix: "/rj/macuco", nome: "Macuco", nivel: 0 },
+  { slug: "petropolis", prefix: "/rj/petropolis", nome: "Petrópolis", nivel: 3 }
+];
 
 export default defineConfig({
   testDir: "./tests",
@@ -20,17 +28,14 @@ export default defineConfig({
     trace: "retain-on-failure"
   },
   webServer: {
-    // Os testes rodam na raiz; o deploy em g0v.tomoyo.systems usa ROOT=/vereadores.
-    command: "ROOT= sh scripts/build-all.sh && npx serve out-all -l 4173",
+    // Os testes rodam na raiz; o deploy em g0v.tomoyo.systems usa a base /vereadores.
+    command: "NEXT_PUBLIC_BASE_PATH= npm run build && npx serve out -l 4173",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
-    timeout: 300_000
+    timeout: 600_000
   },
-  projects: citiesFile.cities.flatMap((city) => {
-    const metadata = { prefix: city.root ? "" : `/${city.slug}`, uf: city.uf, nome: city.nome };
-    return [
-      { name: `${city.slug}-desktop`, use: desktop, metadata },
-      { name: `${city.slug}-min`, use: minimo, metadata }
-    ];
-  })
+  projects: CIDADES.flatMap((city) => [
+    { name: `${city.slug}-desktop`, use: desktop, metadata: city },
+    { name: `${city.slug}-min`, use: minimo, metadata: city }
+  ])
 });

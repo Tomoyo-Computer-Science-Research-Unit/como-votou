@@ -6,19 +6,18 @@ import { Hotkeys } from "@/components/Hotkeys";
 import { SiteNav } from "@/components/SiteNav";
 import { StatusBar } from "@/components/StatusBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { UfSwitch } from "@/components/UfSwitch";
-import { getVotacoes } from "@/lib/static-api";
+import { CitySearch } from "@/components/CitySearch";
+import { DataGate } from "@/components/DataGate";
 import { cursorVars } from "@/lib/cursors";
-import { CITY } from "@/lib/uf";
+import { BASE_PATH, ROOT_CONFIG } from "@/lib/uf";
 import "./globals.css";
 
 const mincho = Shippori_Mincho_B1({ weight: ["500", "700"], subsets: ["latin"], variable: "--font-mincho", display: "swap" });
 const archivo = Archivo({ subsets: ["latin"], weight: "variable", axes: ["wdth"], variable: "--font-archivo", display: "swap" });
 
 export const SITE_NAME = "Vereadores";
-const DESCRIPTION = CITY.description;
+const DESCRIPTION = ROOT_CONFIG.description;
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const SITE_URL = `https://g0v.tomoyo.systems${BASE_PATH}`;
 
 export const metadata: Metadata = {
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Tomoyo", url: "https://tomoyo.systems" }],
   creator: "Tomoyo",
   publisher: "Tomoyo",
-  keywords: CITY.keywords,
+  keywords: ROOT_CONFIG.keywords,
   alternates: { canonical: "/" },
   openGraph: { type: "website", locale: "pt_BR", url: SITE_URL, siteName: SITE_NAME, title: SITE_NAME, description: DESCRIPTION, images: [{ url: "/icon.png", width: 512, height: 512, alt: SITE_NAME }] },
   twitter: { card: "summary", title: SITE_NAME, description: DESCRIPTION },
@@ -47,8 +46,6 @@ const THEME_SCRIPT = `(() => {
 })();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const label = `${CITY.camaraCurta} · ${getVotacoes().length.toLocaleString("pt-BR")} votações nominais`;
-
   return (
     <html
       lang="pt-BR"
@@ -78,12 +75,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </span>
             <SiteNav />
             <span className="flex shrink-0 items-center gap-3">
-              <UfSwitch />
+              <CitySearch />
               <ThemeToggle />
             </span>
           </header>
-          <main className="app__main">{children}</main>
-          <StatusBar latestLabel={label} />
+          <main className="app__main">
+            <DataGate>{children}</DataGate>
+          </main>
+          <StatusBar />
         </div>
         <Hotkeys />
         <Fx />

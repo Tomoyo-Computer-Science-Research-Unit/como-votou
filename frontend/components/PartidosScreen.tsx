@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { BarList } from "@/components/BarList";
 import { useScreenHotkeys } from "@/components/Hotkeys";
+import { cityRoute } from "@/lib/uf";
+import { useCity } from "@/lib/use-city";
 import { EmptyState, Panel, Screen, Stat } from "@/components/ui";
 import { currentLegislatura, displayName, formatInt, formatPct, getVereadores, getVotacoes, votacaoTitle, type Vereador, type Votacao } from "@/lib/static-api";
 
@@ -28,6 +30,7 @@ function mean(values: Array<number | null | undefined>): number | null {
 }
 
 export function PartidosScreen() {
+  const { city } = useCity();
   const leg = currentLegislatura();
   const legKey = String(leg.numero);
   const legStart = Number(leg.inicio.slice(0, 4));
@@ -153,7 +156,7 @@ export function PartidosScreen() {
             label: displayName(vereador),
             sub: vereador.situacao === "em_exercicio" ? undefined : vereador.situacao?.replace(/_/g, " "),
             value: vereador.com_maioria ?? 0,
-            href: `/?v=${encodeURIComponent(vereador.id)}`
+            href: `${cityRoute(city, "/")}?v=${encodeURIComponent(vereador.id)}`
           }))}
           max={1}
           format={(value) => formatPct(value)}
@@ -176,7 +179,7 @@ export function PartidosScreen() {
               {selected.menosCoesas.map(({ votacao, unanimidade, placar }) => (
                 <tr key={votacao.id}>
                   <td>
-                    <Link href={`/votacoes?v=${encodeURIComponent(votacao.id)}`} className="text-ink hover:underline hover:underline-offset-4">
+                    <Link href={`${cityRoute(city, "/votacoes")}?v=${encodeURIComponent(votacao.id)}`} className="text-ink hover:underline hover:underline-offset-4">
                       {votacaoTitle(votacao)}
                     </Link>
                   </td>

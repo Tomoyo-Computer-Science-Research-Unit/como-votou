@@ -7,7 +7,6 @@ import { useScreenHotkeys } from "@/components/Hotkeys";
 import { MonthGrid } from "@/components/MonthGrid";
 import { EmptyState, Panel, Screen, Segmented, Stat } from "@/components/ui";
 import {
-  TIPO_LABELS,
   VOTO_LABELS,
   currentLegislatura,
   displayName,
@@ -20,13 +19,15 @@ import {
   resultadoClass,
   resultadoLabel,
   sumVotos,
+  tipoLabel,
   votacaoTitle,
   type Vereador,
   type VereadorDetalhe,
   type Voto
 } from "@/lib/static-api";
+import { cityRoute, dataUrl } from "@/lib/uf";
+import { useCity } from "@/lib/use-city";
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 type Sort = "faltas" | "participacao" | "proposicoes" | "nome";
 type Scope = "exercicio" | "todos";
 type View = "votos" | "proposicoes";
@@ -72,6 +73,7 @@ function proposicoesLeg(vereador: Vereador, start: number): Record<string, numbe
 }
 
 export function VereadoresExplorer() {
+  const { city } = useCity();
   const all = getVereadores();
   const leg = currentLegislatura();
   const legStart = Number(leg.inicio.slice(0, 4));
@@ -226,7 +228,7 @@ export function VereadoresExplorer() {
           <span className="flex items-center gap-3">
             {selected.foto ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={`${BASE_PATH}/${selected.foto}`} alt="" className="photo photo--sm" loading="lazy" />
+              <img src={dataUrl(city, selected.foto)} alt="" className="photo photo--sm" loading="lazy" />
             ) : (
               // A Câmara só publica foto de quem está em exercício; para os demais, as iniciais.
               <span className="photo photo--sm grid place-items-center text-[12px] tracking-[0.1em] text-ash" aria-hidden="true">
@@ -286,7 +288,7 @@ export function VereadoresExplorer() {
         <BarList
           rows={Object.entries(props)
             .sort((a, b) => b[1] - a[1])
-            .map(([tipo, count]) => ({ key: tipo, label: TIPO_LABELS[tipo] ?? tipo, value: count }))}
+            .map(([tipo, count]) => ({ key: tipo, label: tipoLabel(tipo), value: count }))}
           empty="SEM PROPOSIÇÕES NA LEGISLATURA"
         />
       </Panel>
@@ -343,7 +345,7 @@ export function VereadoresExplorer() {
                     <tr key={linha.votacao_id}>
                       <td className="num">{formatDate(votacao!.data)}</td>
                       <td>
-                        <Link href={`/votacoes?v=${encodeURIComponent(votacao!.id)}`} className="text-ink hover:underline hover:underline-offset-4">
+                        <Link href={`${cityRoute(city, "/votacoes")}?v=${encodeURIComponent(votacao!.id)}`} className="text-ink hover:underline hover:underline-offset-4">
                           {votacaoTitle(votacao!)}
                         </Link>
                       </td>

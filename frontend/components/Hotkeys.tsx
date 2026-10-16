@@ -3,9 +3,9 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { NAV_ITEMS } from "@/components/SiteNav";
-import { nextCityHref } from "@/lib/uf";
+import { cityRoute, nextCityHref, splitPath } from "@/lib/uf";
 
-/** Teclas globais: 1–5 trocam de tela, U passa para a próxima cidade, T inverte o tema nesta visita. Ignora campos de formulário. */
+/** Teclas globais: 1–5 trocam de tela na mesma cidade, U passa para a próxima cidade, T inverte o tema nesta visita. Ignora campos de formulário. */
 export function Hotkeys() {
   const router = useRouter();
   const pathname = usePathname();
@@ -18,7 +18,7 @@ export function Hotkeys() {
       const item = NAV_ITEMS.find((candidate) => candidate.key === event.key);
       if (item) {
         event.preventDefault();
-        router.push(item.href);
+        router.push(cityRoute(splitPath(pathname).city, item.href));
         return;
       }
       if (event.key === "u" || event.key === "U") {

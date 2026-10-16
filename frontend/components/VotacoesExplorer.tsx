@@ -6,7 +6,8 @@ import { useScreenHotkeys } from "@/components/Hotkeys";
 import { EmptyState, Panel, Screen, Stat } from "@/components/ui";
 import { YearSelect, stepYear, type YearSel } from "@/components/YearSelect";
 import { VOTO_LABELS, cleanAuthor, displayName, formatDate, getVereadores, getVotacoes, loadVotacao, objetoLabel, resultadoClass, resultadoLabel, votacaoTitle, type VotacaoDetalhe, type Voto } from "@/lib/static-api";
-import { CITY } from "@/lib/uf";
+import { cityConfig, cityRoute } from "@/lib/uf";
+import { useCity } from "@/lib/use-city";
 
 type ResultFilter = "todos" | "aprovado" | "rejeitado" | "outros";
 const RESULTS: Array<{ value: ResultFilter; label: string }> = [
@@ -17,6 +18,7 @@ const RESULTS: Array<{ value: ResultFilter; label: string }> = [
 ];
 
 export function VotacoesExplorer() {
+  const { city } = useCity();
   const all = useMemo(() => [...getVotacoes()].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0)), []);
   const vereadores = useMemo(() => new Map(getVereadores().map((item) => [item.id, item])), []);
   const years = useMemo(() => [...new Set(all.map((item) => Number(item.data.slice(0, 4))))].sort((a, b) => b - a), [all]);
@@ -149,7 +151,7 @@ export function VotacoesExplorer() {
         }
         aside={
           <a href={selected.fonte} target="_blank" rel="noreferrer" className="btn !h-7 !px-2 text-[10px]">
-            {CITY.fonteVotacao}
+            {cityConfig(city).fonteVotacao}
           </a>
         }
       >
@@ -212,7 +214,7 @@ export function VotacoesExplorer() {
                       const vereador = vereadores.get(id);
                       return (
                         <li key={id} className="whitespace-normal px-3">
-                          <Link href={`/?v=${encodeURIComponent(id)}`} className="text-ink hover:underline hover:underline-offset-4">
+                          <Link href={`${cityRoute(city, "/")}?v=${encodeURIComponent(id)}`} className="text-ink hover:underline hover:underline-offset-4">
                             {vereador ? displayName(vereador) : id}
                           </Link>
                           <span className="ml-1.5 text-[10px] tracking-[0.08em] text-ash">

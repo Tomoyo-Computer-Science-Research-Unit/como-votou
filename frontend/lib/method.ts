@@ -1,6 +1,6 @@
 /** Texto da página Método, por cidade. Os números vêm dos dados do build. */
 import { formatInt } from "@/lib/static-api";
-import { UF } from "@/lib/uf";
+import type { Cidade } from "@/lib/uf";
 
 export type MethodContext = { generated: string; votacoes: number; semResultado: number; stats: Record<string, unknown> };
 export type MethodSection = { title: string; body: string };
@@ -67,7 +67,45 @@ function sp(ctx: MethodContext): MethodSection[] {
   ];
 }
 
-export function methodSections(ctx: MethodContext): MethodSection[] {
-  const builders: Record<string, (ctx: MethodContext) => MethodSection[]> = { RJ: rj, SP: sp };
-  return (builders[UF] ?? rj)(ctx);
+const SISTEMA_FRASE: Record<string, string> = {
+  sapl3: "o SAPL 3 do Interlegis, que publica uma API com as tabelas do sistema",
+  sapl25: "o SAPL 2.5 do Interlegis, sem API estável",
+  "portal-modelo": "o Portal Modelo do Interlegis, sem dados da atividade legislativa",
+  "camara-sem-papel": "o Câmara sem Papel, que publica votações e presença só em PDF"
+};
+
+function municipio(city: Cidade, ctx: MethodContext): MethodSection[] {
+  const s = ctx.stats;
+  const sistema = city.sistema && SISTEMA_FRASE[city.sistema] ? SISTEMA_FRASE[city.sistema] : city.sistema && city.sistema !== "desconhecido" && city.sistema !== "nenhum" ? `um sistema próprio (${city.sistema})` : null;
+  const sections: MethodSection[] = [
+    {
+      title: "Vereadores",
+      body: `A lista de vereadores vem dos arquivos de candidatos e de votação por zona do Tribunal Superior Eleitoral, eleições municipais de 2020 e 2024: nome de urna, partido, número, votos nominais válidos e a situação final (eleito por quociente partidário, eleito por média, suplente). Entram os eleitos e os cinco suplentes mais votados de cada partido ou federação. A mesma pessoa é reconhecida nas duas eleições pelo título eleitoral, que não é publicado aqui. A foto é a do registro da candidatura. Quem assumiu a cadeira depois, por licença ou cassação, só aparece como em exercício quando a câmara publica a sua composição. Última leitura: ${ctx.generated}.`
+    },
+    {
+      title: "Câmara",
+      body: sistema
+        ? `A Câmara Municipal de ${city.nome} usa ${sistema}.${city.nivel === 0 ? " Até a última leitura, nada do que ela publica sobre votações, presença ou proposições pôde ser lido como dado." : ""}`
+        : `Não foi encontrado site da câmara que publique votações, presença ou proposições.`
+    }
+  ];
+  if (city.nivel >= 1) {
+    sections.push({
+      title: "SAPL",
+      body: `O SAPL 3 publica, numa API pública, os parlamentares e seus mandatos, as sessões plenárias, a lista de presença de cada sessão, o registro de cada votação com a contagem e, nas votações nominais, o voto de cada parlamentar; e as matérias legislativas com os autores. Este site lê essas tabelas a uma requisição por segundo, guarda cada página e, nas rodadas seguintes, só pede o que é novo. Os parlamentares do SAPL são ligados aos candidatos do TSE por nome normalizado e partido. Foram lidas ${formatInt(ctx.votacoes)} votações com voto individual${num(s, "presenca.sessoes") ? ` e a presença de ${formatInt(num(s, "presenca.sessoes"))} sessões` : ""}. Votações simbólicas e as registradas só com a contagem ficam de fora.`
+    });
+  }
+  sections.push({
+    title: "Níveis",
+    body: "Cada município tem um nível de dado: 0, só os vereadores, pelo TSE; 1, proposições com autor; 2, presença em plenário; 3, votos nominais. O nível é o que a câmara publica em formato legível por máquina, não o que ela publica em PDF ou em vídeo. A tabela ao lado mostra o sistema e o nível de cada uma das 92 câmaras."
+  });
+  sections.push({ title: "Código", body: "ETL em Python e site estático em Next.js, no repositório da Tomoyo; cada download tem o checksum guardado." });
+  return sections;
+}
+
+export function methodSections(city: Cidade, ctx: MethodContext): MethodSection[] {
+  if (city.kind === "municipio") {
+    return municipio(city, ctx);
+  }
+  return city.key === "sp" ? sp(ctx) : rj(ctx);
 }

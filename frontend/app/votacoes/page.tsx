@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { VotacoesExplorer } from "@/components/VotacoesExplorer";
+import { VotacoesPage } from "@/components/Municipio";
 
 export const metadata: Metadata = { title: "Votações" };
 
-export default function VotacoesPage() {
-  return <VotacoesExplorer />;
+export default function Route() {
+  return <VotacoesPage />;
 }

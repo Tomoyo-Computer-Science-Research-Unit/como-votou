@@ -1,49 +1,129 @@
 /**
- * O que muda de uma cidade para outra: nomes, textos curtos e rótulos dos tipos de proposição.
- * As telas, os painéis e os componentes são os mesmos; cada build carrega os dados de uma cidade
- * (NEXT_PUBLIC_UF, "RJ" padrão) e só este módulo sabe qual é.
+ * As cidades do site e o que muda entre elas: nomes, textos curtos, rótulos dos tipos de proposição.
+ * Um só build serve todas: Rio (capital) na raiz, São Paulo em /sp/, os municípios do Estado do Rio
+ * em /rj/<slug>/. A cidade de uma página sai do endereço (cityFromPath); os dados de cada uma vêm por
+ * fetch de public/data/<dir>/ (scripts/stage-data.mjs).
  */
 
 import citiesFile from "@/data/cities.json";
+import municipiosFile from "@/data/rj-municipios.json";
 
-/** Sigla da UF da cidade; uma capital por UF. */
-export type Uf = string;
-export type Cidade = { uf: Uf; slug: string; nome: string; root: boolean; href: string };
+export type Cidade = {
+  /** "rj", "sp" ou "rj/<slug>". */
+  key: string;
+  /** Pasta dos dados em public/data/. */
+  dir: string;
+  slug: string;
+  nome: string;
+  /** Prefixo das rotas da cidade: "" (Rio), "/sp", "/rj/<slug>". */
+  prefix: string;
+  kind: "capital" | "municipio";
+  /** Nível de dado: 0 só vereadores (TSE), 1 proposições, 2 presença, 3 votos nominais. */
+  nivel: number;
+  sistema: string | null;
+  urlCamara: string | null;
+};
 
-const LIST = (citiesFile as { cities: Array<{ uf: string; slug: string; nome: string; root?: boolean }> }).cities;
-const ROOT_CITY = LIST.find((item) => item.root) ?? LIST[0];
-const wanted = (process.env.NEXT_PUBLIC_UF ?? ROOT_CITY.uf).toUpperCase();
-const CURRENT = LIST.find((item) => item.uf.toUpperCase() === wanted) ?? ROOT_CITY;
+export type MunicipioIndex = {
+  slug: string;
+  nome: string;
+  ibge: number;
+  nivel: number;
+  sistema: string;
+  url_camara: string | null;
+  cadeiras?: number;
+  votacoes?: number;
+  presencas?: number;
+  proposicoes?: number;
+  ultima_votacao?: string | null;
+  capital?: boolean;
+};
 
-export const UF: Uf = CURRENT.uf.toUpperCase();
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const CAPITAIS = (citiesFile as { cities: Array<{ uf: string; slug: string; nome: string; root?: boolean }> }).cities;
+export const MUNICIPIOS = (municipiosFile as { municipios: MunicipioIndex[] }).municipios;
+const RIO_INDEX = MUNICIPIOS.find((item) => item.capital);
 
-/** Raiz comum das cidades: "/vereadores" em produção, "" nos testes. A cidade raiz mora nela; as demais em <raiz>/<slug>. */
-export const SITE_ROOT = CURRENT.root ? BASE_PATH : BASE_PATH.replace(new RegExp(`/${CURRENT.slug}$`), "");
-
-/** Cidades publicadas, na ordem de frontend/data/cities.json. */
-export const CIDADES: Cidade[] = LIST.map((item) => ({
-  uf: item.uf.toUpperCase(),
+const capitais: Cidade[] = CAPITAIS.map((item) => ({
+  key: item.slug,
+  dir: item.slug,
   slug: item.slug,
   nome: item.nome,
-  root: Boolean(item.root),
-  href: item.root ? `${SITE_ROOT}/` : `${SITE_ROOT}/${item.slug}/`
+  prefix: item.root ? "" : `/${item.slug}`,
+  kind: "capital",
+  nivel: 3,
+  sistema: item.root ? RIO_INDEX?.sistema ?? null : null,
+  urlCamara: item.root ? RIO_INDEX?.url_camara ?? null : null
 }));
 
-/** Mesma tela noutra cidade (a seleção de vereador ou votação não se transfere). */
-export function cityHref(cidade: Cidade, pathname: string): string {
-  const rest = pathname.replace(/^\/+|\/+$/g, "");
-  return rest ? `${cidade.href}${rest}/` : cidade.href;
+const municipios: Cidade[] = MUNICIPIOS.filter((item) => !item.capital)
+  .map((item) => ({
+    key: `rj/${item.slug}`,
+    dir: `rjm/${item.slug}`,
+    slug: item.slug,
+    nome: item.nome,
+    prefix: `/rj/${item.slug}`,
+    kind: "municipio" as const,
+    nivel: item.nivel,
+    sistema: item.sistema,
+    urlCamara: item.url_camara
+  }))
+  .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+/** Capitais primeiro (Rio, São Paulo), depois os municípios do Estado do Rio em ordem alfabética. */
+export const CIDADES: Cidade[] = [...capitais, ...municipios];
+export const ROOT_CITY: Cidade = capitais.find((item) => item.prefix === "") ?? capitais[0];
+
+/** Telas, na ordem das teclas 1–5. */
+export const SCREENS = ["/", "/votacoes", "/presenca", "/partidos", "/metodologia"] as const;
+
+/** Cidade e tela de um caminho sem basePath ("/rj/niteroi/votacoes/" -> Niterói, "/votacoes"). */
+export function splitPath(pathname: string): { city: Cidade; screen: string } {
+  const clean = `/${pathname.replace(/^\/+|\/+$/g, "")}`;
+  const parts = clean.split("/").filter(Boolean);
+  let city = ROOT_CITY;
+  let rest = parts;
+  if (parts[0] === "rj" && parts[1]) {
+    city = municipios.find((item) => item.slug === parts[1]) ?? ROOT_CITY;
+    rest = parts.slice(2);
+  } else if (parts[0]) {
+    const capital = capitais.find((item) => item.prefix === `/${parts[0]}`);
+    if (capital) {
+      city = capital;
+      rest = parts.slice(1);
+    }
+  }
+  return { city, screen: rest.length ? `/${rest.join("/")}` : "/" };
 }
 
-/** A próxima cidade da lista (tecla u). */
+export function cityFromPath(pathname: string): Cidade {
+  return splitPath(pathname).city;
+}
+
+/** Rota da tela na cidade, sem basePath (para Link e router). */
+export function cityRoute(cidade: Cidade, screen: string): string {
+  return screen === "/" ? `${cidade.prefix}/` : `${cidade.prefix}${screen}/`;
+}
+
+/** Endereço completo, com basePath (para window.location). */
+export function cityHref(cidade: Cidade, screen: string): string {
+  return `${BASE_PATH}${cityRoute(cidade, screen)}`;
+}
+
+/** A próxima cidade da lista, na mesma tela (tecla u). */
 export function nextCityHref(pathname: string): string {
-  const index = CIDADES.findIndex((item) => item.uf === UF);
-  return cityHref(CIDADES[(index + 1) % CIDADES.length], pathname);
+  const { city, screen } = splitPath(pathname);
+  const index = CIDADES.findIndex((item) => item.key === city.key);
+  return cityHref(CIDADES[(index + 1) % CIDADES.length], screen);
 }
 
-type CityConfig = {
+/** URL de um arquivo de dados da cidade. */
+export function dataUrl(cidade: Cidade, file: string): string {
+  return `${BASE_PATH}/data/${cidade.dir}/${file}`;
+}
+
+export type CityConfig = {
   cidade: string;
   camara: string;
   /** Rótulo curto da barra de status. */
@@ -99,7 +179,30 @@ const SP: CityConfig = {
   }
 };
 
-/** Textos de cada cidade; uma cidade nova em cities.json precisa da sua entrada aqui. */
-const TEXTS: Record<string, CityConfig> = { RJ, SP };
+export function deCidade(nome: string): string {
+  return `de ${nome}`;
+}
 
-export const CITY: CityConfig = TEXTS[UF] ?? RJ;
+function municipioConfig(cidade: Cidade): CityConfig {
+  const camara = `Câmara Municipal ${deCidade(cidade.nome)}`;
+  return {
+    cidade: cidade.nome,
+    camara,
+    camaraCurta: `Câmara ${deCidade(cidade.nome)}`,
+    description:
+      cidade.nivel >= 3
+        ? `${camara} (RJ): vereadores eleitos em 2020 e 2024, votações nominais, presença em plenário e proposições de cada vereador, a partir do TSE e do sistema da Câmara.`
+        : `${camara} (RJ): vereadores eleitos em 2020 e 2024, com partido e votos, a partir dos dados abertos do TSE, e o que a Câmara publica da atividade de cada um.`,
+    keywords: [cidade.nome, "Câmara Municipal", "vereadores", "eleições 2024", "Estado do Rio de Janeiro"],
+    fonteVotacao: "SAPL",
+    tipoLabels: RJ.tipoLabels
+  };
+}
+
+const TEXTS: Record<string, CityConfig> = { rj: RJ, sp: SP };
+
+export function cityConfig(cidade: Cidade): CityConfig {
+  return cidade.kind === "capital" ? TEXTS[cidade.key] ?? RJ : municipioConfig(cidade);
+}
+
+export const ROOT_CONFIG = RJ;

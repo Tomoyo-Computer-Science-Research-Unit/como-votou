@@ -15,10 +15,13 @@ data/snapshot.json
 data/sp/raw/
 data/sp/photos/
 data/sp/snapshot.json
-# Copies of frontend/data/<uf>/ made by frontend/scripts/use-uf.sh before each build
+# Copies of frontend/data/ made by frontend/scripts/stage-data.mjs before each build
+frontend/public/data/
 frontend/lib/static-data.generated.json
 frontend/lib/static-votacoes/
 frontend/lib/static-vereadores/
 frontend/public/fotos/
 frontend/out-cities/
 frontend/out-all/
+data/rjm/
+frontend/data/rjm/

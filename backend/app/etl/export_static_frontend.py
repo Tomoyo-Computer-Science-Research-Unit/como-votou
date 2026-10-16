@@ -175,26 +175,27 @@ def build(snapshot: dict) -> tuple[dict, dict[str, dict], dict[str, dict]]:
     for vt in votacoes:
         por_ano_vot[vt["data"][:4]]["votacoes"] += 1
         por_ano_vot[vt["data"][:4]][f"resultado_{vt['resultado'] or 'indefinido'}"] += 1
-    stats = {
-            "votacoes": {"candidatos": vstats.get("candidates_in_range"), "lidos": vstats.get("docs_fetched"),
-                         "com_votacao": vstats.get("docs_with_roll_call"), "total": len(votacoes),
-                         "sem_resultado": sum(1 for vt in votacoes if not vt["resultado"]),
-                         "sem_presidente": sum(1 for vt in votacoes if not vt.get("presidente")),
-                         "contagem_mismatches": vstats.get("contagem_mismatches"),
-                         "impresso_discrepancies": len(vstats.get("impresso_discrepancies", [])),
-                         "docs_failed": len(vstats.get("docs_failed", [])),
-                         "por_ano": {y: dict(vstats.get("por_ano", {}).get(y, {}), **por_ano_vot.get(y, {}))
-                                     for y in sorted(set(vstats.get("por_ano", {})) | set(por_ano_vot))}},
-            "presenca": {"meses_com_dado": len(meses), "primeiro_mes": meses[0] if meses else None,
-                         "ultimo_mes": meses[-1] if meses else None, "linhas": len(presencas)},
-            "proposicoes": {"total": len(proposicoes), "por_tipo": dict(prop_por_tipo),
-                            "por_ano": {y: dict(c) for y, c in sorted(prop_por_ano.items())},
-                            "sem_autor_casado": sum(1 for p in proposicoes if not p.get("autores_ids")
-                                                    and any(not _inst(a) for a in p["autores"]))},
-            "nomes_nao_casados": nomes,
-    }
     if uf in STATS_BUILDERS:      # cities whose sources give other coverage counts than Rio's
         stats = STATS_BUILDERS[uf](snapshot, votacoes, presencas, proposicoes, meses, prop_por_tipo, prop_por_ano, por_ano_vot)
+    else:
+        stats = {
+                "votacoes": {"candidatos": vstats.get("candidates_in_range"), "lidos": vstats.get("docs_fetched"),
+                             "com_votacao": vstats.get("docs_with_roll_call"), "total": len(votacoes),
+                             "sem_resultado": sum(1 for vt in votacoes if not vt["resultado"]),
+                             "sem_presidente": sum(1 for vt in votacoes if not vt.get("presidente")),
+                             "contagem_mismatches": vstats.get("contagem_mismatches"),
+                             "impresso_discrepancies": len(vstats.get("impresso_discrepancies", [])),
+                             "docs_failed": len(vstats.get("docs_failed", [])),
+                             "por_ano": {y: dict(vstats.get("por_ano", {}).get(y, {}), **por_ano_vot.get(y, {}))
+                                         for y in sorted(set(vstats.get("por_ano", {})) | set(por_ano_vot))}},
+                "presenca": {"meses_com_dado": len(meses), "primeiro_mes": meses[0] if meses else None,
+                             "ultimo_mes": meses[-1] if meses else None, "linhas": len(presencas)},
+                "proposicoes": {"total": len(proposicoes), "por_tipo": dict(prop_por_tipo),
+                                "por_ano": {y: dict(c) for y, c in sorted(prop_por_ano.items())},
+                                "sem_autor_casado": sum(1 for p in proposicoes if not p.get("autores_ids")
+                                                        and any(not _inst(a) for a in p["autores"]))},
+                "nomes_nao_casados": nomes,
+        }
     static = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "snapshot_generated_at": snapshot["generated_at"],
@@ -236,7 +237,7 @@ def sp_stats(snapshot: dict, votacoes: list[dict], presencas: list[dict], propos
 
 # Per-city source labels and coverage blocks; Rio uses the defaults written inline above.
 SOURCE_KINDS = {"SP": SOURCE_KINDS_SP}
-STATS_BUILDERS = {"SP": sp_stats}
+STATS_BUILDERS = {"SP": sp_stats, "RJM": lambda snapshot, *_: snapshot["stats"]}   # RJM: municípios (app.etl.sapl)
 
 
 def _inst(a: str) -> bool:

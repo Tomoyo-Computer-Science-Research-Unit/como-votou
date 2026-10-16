@@ -434,3 +434,95 @@ the longest nominal series, as CSV; presence has to come from quorum calls. (3) 
 Aracaju: partial or lagging votes. (4) Salvador, Belém, CLDF, Manaus: presence and bills but no
 per-vereador votes. (5) São Luís, Vitória, Cuiabá need PDF parsing; Campo Grande, Florianópolis
 and Curitiba sit behind captchas.
+
+# Estado do Rio de Janeiro — os 92 municípios (2026-10-16)
+
+## Nível 0: TSE
+
+Todos os 92 entram pelos dados abertos do TSE: `consulta_cand_<ano>.zip` e
+`votacao_candidato_munzona_<ano>.zip` (arquivos nacionais com um CSV por UF; 255 MB os quatro, 2020
+e 2024), filtrados para cargo 13 (vereador) e eleição ordinária (a suplementar de Itaguaí em
+10/2026 fica de fora). Votos = soma de `QT_VOTOS_NOMINAIS_VALIDOS` por zona; situação = 
+`DS_SIT_TOT_TURNO` da votação (eleito por QP, por média, suplente). Ficam os eleitos e os cinco
+suplentes mais votados de cada partido ou federação: 1.208 eleitos em 2024 e 6.845 pessoas nos 92.
+A pessoa é a mesma nas duas eleições quando o título eleitoral é o mesmo (o id publicado é um hash).
+O TSE regera os arquivos de 2024 quase todo dia; o ETL só os baixa de novo quando o Last-Modified
+muda e a cópia tem mais de 7 dias. `NM_CANDIDATO` vem sem acento em parte dos registros.
+
+Fotos: `foto_cand<ano>_RJ_div.zip` (515 MB em 2024, 747 MB em 2020) é lido por faixa de bytes
+(HTTP Range, 96 KB por pedido, 4 por segundo ao CDN): ~4.700 pedidos para 6.600 fotos, ~35 min na
+primeira vez, depois nada. `divulgacandcontas.tse.jus.br` responde 403 a clientes fora do navegador.
+O site publica a foto de quem foi eleito ao menos uma vez.
+
+## Levantamento das câmaras (`backend/data/rj-camaras.csv`)
+
+`python -m app.etl.survey_camaras`: hosts no padrão do Interlegis (`sapl.<x>.rj.leg.br`,
+`<x>.rj.leg.br`, `cm<x>.rj.gov.br`…), 14 endereços achados à mão, assinatura do sistema no HTML e,
+nos SAPL 3, contagem das tabelas da API. 765 requisições, 180 s. O resolvedor DNS local nega nomes
+`*.rj.leg.br` que existem; o script tenta DNS sobre HTTPS quando a busca falha.
+
+| Sistema | Câmaras |
+|---|---|
+| SAPL 3 (com dados) | 34 |
+| WordPress | 18 |
+| Portal Modelo (Interlegis) | 12 |
+| outro | 6 |
+| fora do ar | 5 |
+| MTW PortalGov | 4 |
+| NPI Brasil | 3 |
+| Joomla | 2 |
+| Câmara sem Papel | 2 |
+| Drupal, Wix, Siscam, PLE (Porto Real), aplicativo web, Domino (Rio) | 1 cada |
+
+Nenhum SAPL 2.5. Cinco câmaras têm um SAPL 3 vazio (Areal, Itaocara, Paraíba do Sul, Santo Antônio
+de Pádua, Campos dos Goytacazes) e foram classificadas pelo site principal. O que cada uma publica,
+pelo levantamento: votos nominais 25 (24 SAPL 3 e o Rio), presença 5, proposições 36, só PDF 13,
+nada 3, não verificado 10. Fora do SAPL a classificação é um palpite pelas palavras da página inicial.
+
+## Nível por município, depois do leitor SAPL
+
+`python -m app.etl.sapl --all` lê os 34 SAPL 3; `python -m app.etl.municipios` exporta.
+
+| Nível | Municípios |
+|---|---|
+| 3, votos nominais | 22 (+ a capital) |
+| 2, presença | 6 |
+| 1, proposições | 3 |
+| 0, só vereadores (TSE) | 61 |
+
+Votações nominais lidas desde 2021, por município: Macaé 2.984, Petrópolis 2.556 (a última em
+14/11/2024: a Câmara parou de registrar votos no SAPL), Rio das Ostras 2.328, Mangaratiba 2.292,
+Barra do Piraí 2.220, Nova Friburgo 825, Piraí 819, Quissamã 779 (até 12/2024), Barra Mansa 500,
+Quatis 402, Engenheiro Paulo de Frontin 341, Cachoeiras de Macacu 189, Valença 177 (até 04/2023), Duas Barras 164; Paty do
+Alferes, Itaguaí, Cantagalo, Miguel Pereira, Mendes, Conceição de Macabu e Belford Roxo têm menos de
+25: o painel quase não é usado e o resto é votação simbólica.
+
+O leitor SAPL:
+
+- lê `parlamentares/{legislatura,parlamentar,mandato,filiacao,partido}`,
+  `sessao/{sessaoplenaria,sessaoplenariapresenca,registrovotacao,votoparlamentar,tiporesultadovotacao}`,
+  `materia/materialegislativa` (por ano, `?ano=`, desde 2021; o campo `autores` dispensa
+  `materia/autoria`), `materia/tipomaterialegislativa`, `base/{autor,tipoautor}`;
+- ordena por `?o=-id` (`ordering=` e `ano__gte=` são ignorados em silêncio) e, nas rodadas
+  seguintes, para na primeira página sem nada novo; se o total guardado fica abaixo do
+  `total_entries` anunciado, relê a tabela inteira (um 404 transitório no meio da paginação cortou
+  a presença de Petrópolis na primeira tentativa);
+- liga parlamentar a candidato do TSE por nome completo, depois nome parlamentar, depois nome
+  parecido (razão ≥ 0,93, ou ≥ 0,85 com o mesmo partido); quem não casa entra como `sapl:<id>`;
+- conta como votação nominal o registro com voto individual; ficam de fora as unânimes sobre
+  indicação, requerimento, moção e ofício (dezenas de milhares, sem informação);
+- falta = sessão com lista de presença publicada, mandato vigente no dia, parlamentar fora da lista.
+  O SAPL não diz se a falta foi justificada.
+
+Primeira leitura dos 34: 34 min 53 s com 12 câmaras em paralelo, cada uma a 1 req/s; as maiores
+foram Rio das Ostras (1.771 requisições), Petrópolis (1.504), Macaé (1.450) e Nova Friburgo (1.089).
+Duas câmaras (Bom Jardim, Cachoeiras de Macacu) falharam por DNS e entraram na segunda rodada.
+Rodada incremental seguinte: 4 min 37 s, de 19 a 277 requisições por câmara (as matérias do ano
+corrente e do anterior são relidas inteiras).
+Dados do frontend dos 91 municípios: 94 MB em `frontend/data/rjm/` (votos por votação e fichas
+por vereador são a maior parte).
+
+Próximos sistemas, pelo custo: (1) WordPress e Portal Modelo (30 câmaras) publicam proposições e
+atas como páginas e PDF, sem padrão comum; (2) MTW PortalGov e Siscam publicam pautas e atas em PDF
+num formato repetido entre câmaras, o que permitiria um leitor por fornecedor; (3) as cinco fora do
+ar e as dez não verificadas pedem uma segunda passada à mão.

@@ -1003,3 +1003,69 @@ input.yearselect::placeholder {
 :root {
   --g0v-discord-bottom: 34px;
 }
+
+/* Seletor de cidade com busca (cabeçalho). */
+.citysearch {
+  position: relative;
+}
+input.yearselect.citysearch__input {
+  width: 190px;
+  padding-right: 24px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+}
+input.yearselect.citysearch__input[aria-expanded="true"] {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 11.5px;
+}
+.citysearch__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  width: 260px;
+  max-height: min(60vh, 420px);
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+.citysearch__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--char);
+  font-size: 12px;
+  cursor: pointer;
+}
+.citysearch__list li .num {
+  color: var(--ash);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.citysearch__list li[aria-current="true"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.citysearch__list li[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.citysearch__list li[aria-selected="true"] .num {
+  color: var(--paper);
+}
+.citysearch__empty {
+  color: var(--ash);
+  cursor: default;
+}
+html.fx .ruled.nofx,
+html.fx[data-theme="dark"] .ruled.nofx {
+  filter: none;
+}

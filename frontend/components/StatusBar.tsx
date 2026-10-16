@@ -1,6 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { formatInt } from "@/lib/static-api";
+import { cityConfig } from "@/lib/uf";
+import { useCity, useLoadedCore } from "@/lib/use-city";
 
 const HINTS: Record<string, Array<[string, string]>> = {
   "/": [
@@ -22,10 +24,23 @@ const HINTS: Record<string, Array<[string, string]>> = {
   "/metodologia": []
 };
 
-export function StatusBar({ latestLabel }: { latestLabel: string }) {
-  const pathname = usePathname();
-  const base = pathname.replace(/\/+$/, "") || "/";
-  const hints = HINTS[base] ?? [];
+const HINTS_TSE: Array<[string, string]> = [
+  ["↑↓", "vereador"],
+  ["←→", "ordem"],
+  ["e", "eleição"]
+];
+
+export function StatusBar() {
+  const { city, screen } = useCity();
+  const core = useLoadedCore();
+  const hints = city.kind === "municipio" && city.nivel === 0 ? (screen === "/" ? HINTS_TSE : []) : HINTS[screen] ?? [];
+  const nome = cityConfig(city).camaraCurta;
+  const latestLabel =
+    city.kind === "municipio"
+      ? `${nome} · nível ${city.nivel}`
+      : core
+        ? `${nome} · ${formatInt(core.votacoes.length)} votações nominais`
+        : nome;
 
   return (
     <footer className="statusbar">

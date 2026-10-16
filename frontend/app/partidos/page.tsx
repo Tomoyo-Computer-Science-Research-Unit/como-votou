@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { PartidosScreen } from "@/components/PartidosScreen";
+import { PartidosPage } from "@/components/Municipio";
 
 export const metadata: Metadata = { title: "Partidos" };
 
-export default function PartidosPage() {
-  return <PartidosScreen />;
+export default function Route() {
+  return <PartidosPage />;
 }

@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
+import { CIDADES, SCREENS, cityRoute } from "@/lib/uf";
 
 export const dynamic = "force-static";
 
 const baseUrl = `https://g0v.tomoyo.systems${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}`;
-const routes = ["/", "/votacoes/", "/presenca/", "/partidos/", "/metodologia/"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return routes.map((route) => ({ url: `${baseUrl}${route}`, changeFrequency: "daily", priority: route === "/" ? 1 : 0.8 }));
+  return CIDADES.flatMap((city) =>
+    SCREENS.map((screen) => ({ url: `${baseUrl}${cityRoute(city, screen)}`, changeFrequency: "daily" as const, priority: city.kind === "capital" && screen === "/" ? 1 : 0.6 }))
+  );
 }

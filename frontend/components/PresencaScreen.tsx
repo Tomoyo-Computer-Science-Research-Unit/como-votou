@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useScreenHotkeys } from "@/components/Hotkeys";
+import { cityRoute } from "@/lib/uf";
+import { useCity } from "@/lib/use-city";
 import { EmptyState, Panel, Screen } from "@/components/ui";
 import { displayName, getVereadores, presencaYears, type PresencaMes } from "@/lib/static-api";
 
@@ -16,6 +18,7 @@ function normalize(value: string): string {
 
 /** Faltas em plenário: por mês num ano, ou por ano no período todo. */
 export function PresencaScreen() {
+  const { city } = useCity();
   const years = presencaYears();
   const all = getVereadores();
   const [year, setYear] = useState<YearSel>(years[0] ?? new Date().getFullYear());
@@ -111,7 +114,7 @@ export function PresencaScreen() {
               {rows.map((row) => (
                 <tr key={row.vereador.id}>
                   <td className="max-w-[220px] whitespace-normal break-words">
-                    <Link href={`/?v=${encodeURIComponent(row.vereador.id)}`} className="text-ink hover:underline hover:underline-offset-4">
+                    <Link href={`${cityRoute(city, "/")}?v=${encodeURIComponent(row.vereador.id)}`} className="text-ink hover:underline hover:underline-offset-4">
                       {displayName(row.vereador)}
                     </Link>
                   </td>

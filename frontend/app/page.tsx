@@ -1,5 +1,5 @@
-import { VereadoresExplorer } from "@/components/VereadoresExplorer";
+import { VereadoresPage } from "@/components/Municipio";
 
 export default function HomePage() {
-  return <VereadoresExplorer />;
+  return <VereadoresPage />;
 }

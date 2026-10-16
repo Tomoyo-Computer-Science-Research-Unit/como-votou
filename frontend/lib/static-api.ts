@@ -1,11 +1,12 @@
 /**
- * Camada de dados do site. O núcleo (`static-data.generated.json`) traz vereadores com seus
- * agregados, a lista de votações nominais com contagens e a cobertura; os votos de cada votação
- * e a lista de votos e proposições de cada vereador vêm em arquivos sob demanda.
+ * Camada de dados do site. O núcleo de cada cidade (`static-data.generated.json`) traz vereadores
+ * com seus agregados, a lista de votações nominais com contagens e a cobertura; os votos de cada
+ * votação e a lista de votos e proposições de cada vereador vêm em arquivos sob demanda. O
+ * DataGate busca o núcleo da cidade da página e o instala com `setCore`; os getters leem o núcleo
+ * instalado, de forma síncrona.
  */
 
-import snapshot from "@/lib/static-data.generated.json";
-import { CITY } from "@/lib/uf";
+import { cityConfig, dataUrl, type Cidade } from "@/lib/uf";
 
 export type Voto = "sim" | "nao" | "abstencao" | "ausente" | "presidindo";
 export type VotoTotais = Partial<Record<Voto, number>>;
@@ -30,7 +31,12 @@ export type Vereador = {
   contra_partido: number | null;
   proposicoes_por_tipo: Record<string, Record<string, number>>;
   totais?: Record<string, number>;
+  /** Municípios do Estado do Rio: resultado do vereador nas eleições de 2020 e 2024 (TSE). */
+  eleicoes?: Record<string, Eleicao>;
 };
+export type Eleicao = { partido: string; numero: string; votos: number; situacao: "eleito" | "suplente" | "nao_eleito" };
+export type EleicaoMunicipio = { cadeiras: number; candidatos: number; votos_nominais: number };
+export type MunicipioMeta = { slug: string; nome: string; ibge: number; nivel: number; sistema: string; url_camara: string | null; sapl_url: string | null };
 export type Contagem = { sim: number; nao: number; abstencao: number; presentes_votando: number | null };
 export type Votacao = {
   id: string;
@@ -51,8 +57,11 @@ export type Votacao = {
 export type Legislatura = { numero: number; inicio: string; fim: string };
 export type Coverage = Record<string, unknown>;
 export type Source = { name: string; url: string; accessed_at?: string; count?: number };
-type Core = {
+export type Core = {
   generated_at: string;
+  municipio?: MunicipioMeta;
+  eleicoes?: Record<string, EleicaoMunicipio>;
+  tipo_labels?: Record<string, string>;
   legislaturas: Legislatura[];
   vereadores: Vereador[];
   votacoes: Votacao[];
@@ -64,10 +73,62 @@ export type VotoLinha = { votacao_id: string; voto: Voto };
 export type ProposicaoLinha = { id: string; tipo: string; numero: string; ano: number; ementa: string; data: string | null; coautores?: string[] };
 export type VereadorDetalhe = { votos: VotoLinha[]; proposicoes: ProposicaoLinha[] };
 
-const DATA = snapshot as unknown as Core;
+let CURRENT: { city: Cidade; core: Core } | null = null;
+const coreCache = new Map<string, Promise<Core>>();
+const listeners = new Set<() => void>();
+
+export function loadCore(city: Cidade): Promise<Core> {
+  let pending = coreCache.get(city.key);
+  if (!pending) {
+    pending = fetch(dataUrl(city, "static-data.generated.json")).then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json() as Promise<Core>;
+    });
+    pending.catch(() => coreCache.delete(city.key));
+    coreCache.set(city.key, pending);
+  }
+  return pending;
+}
+
+export function setCore(city: Cidade, core: Core): void {
+  if (CURRENT?.core === core) {
+    return;
+  }
+  CURRENT = { city, core };
+  queueMicrotask(() => listeners.forEach((listener) => listener()));
+}
+
+/** Avisa quando outro núcleo é instalado (barra de status, fora do DataGate). */
+export function subscribeCore(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function currentCity(): Cidade | null {
+  return CURRENT?.city ?? null;
+}
+
+function core(): Core {
+  if (!CURRENT) {
+    throw new Error("núcleo de dados não carregado");
+  }
+  return CURRENT.core;
+}
+
+export function getCore(): Core {
+  return core();
+}
 
 export const VOTO_LABELS: Record<Voto, string> = { sim: "Sim", nao: "Não", abstencao: "Abstenção", ausente: "Ausente", presidindo: "Presidindo" };
-export const TIPO_LABELS: Record<string, string> = CITY.tipoLabels;
+/** Rótulos dos tipos de proposição: os da cidade e, nos municípios com SAPL, os da própria câmara. */
+export function tipoLabel(tipo: string): string {
+  if (!CURRENT) {
+    return tipo;
+  }
+  return CURRENT.core.tipo_labels?.[tipo] ?? cityConfig(CURRENT.city).tipoLabels[tipo] ?? tipo;
+}
 
 /** "Veto ao PL-1861/2026", "Emenda ao PL-…", "PL-…": o que estava em votação, não só a proposição. */
 export function votacaoTitle(votacao: Pick<Votacao, "objeto" | "proposicao" | "titulo">): string {
@@ -132,34 +193,34 @@ export function resultadoClass(votacao: Pick<Votacao, "objeto" | "resultado">): 
 }
 
 export function getMeta() {
-  return { generated_at: DATA.generated_at, legislaturas: DATA.legislaturas, stats: DATA.stats, sources: DATA.sources, presenca_meses: DATA.presenca_meses ?? [] };
+  return { generated_at: core().generated_at, legislaturas: core().legislaturas, stats: core().stats, sources: core().sources, presenca_meses: core().presenca_meses ?? [] };
 }
 export function getLegislaturas(): Legislatura[] {
-  return DATA.legislaturas;
+  return core().legislaturas;
 }
 export function getVereadores(): Vereador[] {
-  return DATA.vereadores;
+  return core().vereadores;
 }
 export function getVereador(id: string): Vereador | undefined {
-  return DATA.vereadores.find((item) => item.id === id);
+  return core().vereadores.find((item) => item.id === id);
 }
 export function getVotacoes(): Votacao[] {
-  return DATA.votacoes;
+  return core().votacoes;
 }
 export function getVotacao(id: string): Votacao | undefined {
-  return DATA.votacoes.find((item) => item.id === id);
+  return core().votacoes.find((item) => item.id === id);
 }
 export function getStats(): Coverage {
-  return DATA.stats;
+  return core().stats;
 }
 export function getSources(): Source[] {
-  return DATA.sources;
+  return core().sources;
 }
 
 /** Anos com presença apurada, do mais recente ao mais antigo. */
 export function presencaYears(): number[] {
   const years = new Set<number>();
-  for (const vereador of DATA.vereadores) {
+  for (const vereador of core().vereadores) {
     for (const key of Object.keys(vereador.presenca?.por_ano ?? {})) {
       years.add(Number(key));
     }
@@ -168,7 +229,7 @@ export function presencaYears(): number[] {
 }
 
 export function currentLegislatura(): Legislatura {
-  return DATA.legislaturas[DATA.legislaturas.length - 1];
+  return core().legislaturas[core().legislaturas.length - 1];
 }
 
 export function displayName(vereador: Pick<Vereador, "nome" | "nome_parlamentar">): string {
@@ -213,6 +274,22 @@ export function cleanAuthor(value: string): string {
 
 // --- Arquivos sob demanda ------------------------------------------------------------------
 
+async function fetchJson<T>(file: string): Promise<T> {
+  if (!CURRENT) {
+    throw new Error("núcleo de dados não carregado");
+  }
+  const response = await fetch(dataUrl(CURRENT.city, file));
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+// Os caches são por cidade: a chave leva a pasta de dados.
+function cacheKey(id: string): string {
+  return `${CURRENT?.city.key ?? ""}|${id}`;
+}
+
 const votosCache = new Map<string, Record<string, Voto>>();
 const detalheCache = new Map<string, VereadorDetalhe>();
 
@@ -221,44 +298,42 @@ const detalheVotacaoCache = new Map<string, VotacaoDetalhe | null>();
 
 /** Arquivo da votação: votos por vereador e a ementa completa (o núcleo só leva um resumo). */
 export async function loadVotacao(votacaoId: string): Promise<VotacaoDetalhe | null> {
-  if (detalheVotacaoCache.has(votacaoId)) {
-    return detalheVotacaoCache.get(votacaoId) ?? null;
+  if (detalheVotacaoCache.has(cacheKey(votacaoId))) {
+    return detalheVotacaoCache.get(cacheKey(votacaoId)) ?? null;
   }
   try {
-    const module = (await import(`@/lib/static-votacoes/${fileId(votacaoId)}.generated.json`)) as { default?: VotacaoDetalhe };
-    const detalhe = (module.default ?? module) as VotacaoDetalhe;
-    detalheVotacaoCache.set(votacaoId, detalhe);
+    const detalhe = await fetchJson<VotacaoDetalhe>(`static-votacoes/${fileId(votacaoId)}.generated.json`);
+    detalheVotacaoCache.set(cacheKey(votacaoId), detalhe);
     return detalhe;
   } catch {
-    detalheVotacaoCache.set(votacaoId, null);
+    detalheVotacaoCache.set(cacheKey(votacaoId), null);
     return null;
   }
 }
 
 export async function loadVotos(votacaoId: string): Promise<Record<string, Voto>> {
-  const cached = votosCache.get(votacaoId);
+  const cached = votosCache.get(cacheKey(votacaoId));
   if (cached) {
     return cached;
   }
   const detalhe = await loadVotacao(votacaoId);
   const votos = detalhe?.votos ?? {};
-  votosCache.set(votacaoId, votos);
+  votosCache.set(cacheKey(votacaoId), votos);
   return votos;
 }
 
 export async function loadVereador(id: string): Promise<VereadorDetalhe> {
-  const cached = detalheCache.get(id);
+  const cached = detalheCache.get(cacheKey(id));
   if (cached) {
     return cached;
   }
   try {
-    const module = (await import(`@/lib/static-vereadores/${fileId(id)}.generated.json`)) as { default?: VereadorDetalhe };
-    const detalhe = (module.default ?? module) as VereadorDetalhe;
-    detalheCache.set(id, detalhe);
+    const detalhe = await fetchJson<VereadorDetalhe>(`static-vereadores/${fileId(id)}.generated.json`);
+    detalheCache.set(cacheKey(id), detalhe);
     return detalhe;
   } catch {
     const empty = { votos: [], proposicoes: [] };
-    detalheCache.set(id, empty);
+    detalheCache.set(cacheKey(id), empty);
     return empty;
   }
 }
