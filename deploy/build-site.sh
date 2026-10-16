@@ -8,7 +8,7 @@
 #     os atualiza e a cópia tem mais de 7 dias), SAPL das câmaras que o usam (incremental, 1 req/s
 #     por câmara) e o export de frontend/data/rjm/
 #
-# Cada parte que roda bem guarda os seus arquivos em $DIR/data-ok/ (o último snapshot bom). Se uma
+# Cada parte que roda bem guarda os seus arquivos em $DIR/data-ok-vereadores/ (o último snapshot bom). Se uma
 # parte falha, ela segue com o último snapshot bom ou, sem ele, com o commitado em main; as outras
 # não param. Falhas avisam por e-mail.
 #

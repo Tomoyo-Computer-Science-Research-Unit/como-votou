@@ -97,6 +97,6 @@ O site vive em `g0v.tomoyo.systems/vereadores`, no nginx estático do g0v (ver o
 `/root/g0v/build-vereadores.sh` (cópia de `deploy/build-site.sh`, que se atualiza sozinha) todo dia:
 puxa `main`, relê o que muda nas duas capitais, no TSE e nos SAPL dos municípios, regenera os dados
 e, se algo mudou, faz um build só e o publica em `/root/g0v/site/vereadores/`. Cada parte que roda
-bem guarda a sua saída em `/root/g0v/data-ok/`; se uma parte falha, ela segue com esse último
+bem guarda a sua saída em `/root/g0v/data-ok-vereadores/`; se uma parte falha, ela segue com esse último
 snapshot bom (ou, sem ele, com o de `main`). `SKIP_DATA=1` não lê fonte nenhuma e constrói com os
 últimos snapshots bons. Falhas avisam por e-mail.
