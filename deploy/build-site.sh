@@ -72,7 +72,7 @@ PY="$SRC/backend/.venv/bin/python"
 [ -x "$PY" ] || uv venv -q --python 3.12 "$SRC/backend/.venv"
 uv pip install -q --python "$PY" -e "$SRC/backend"
 
-OK="$DIR/data-ok"
+OK="$DIR/data-ok-vereadores"
 
 keep_ok() {   # $1 = caminho relativo a frontend/data (pasta ou arquivo): guarda como último snapshot bom
   mkdir -p "$(dirname "$OK/$1")"
