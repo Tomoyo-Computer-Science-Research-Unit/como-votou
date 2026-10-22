@@ -1,4 +1,8 @@
+*This project has been created as part of the 42 curriculum by c3c4d4.*
+
 # Vereadores
+
+## Description
 
 Câmaras Municipais do Rio de Janeiro, de São Paulo e dos outros 91 municípios do Estado do Rio:
 votações nominais, presença em plenário e proposições de cada vereador, da Tomoyo, dentro do
@@ -27,7 +31,13 @@ das 92 câmaras (site, sistema, o que publicam) está em `backend/data/rj-camara
 Sites: https://g0v.tomoyo.systems/vereadores/ (Rio), https://g0v.tomoyo.systems/vereadores/sp/
 (São Paulo) e https://g0v.tomoyo.systems/vereadores/rj/<município>/ (por exemplo `rj/niteroi/`).
 
-## Layout
+Telas: Vereadores (`/`), Votações (`/votacoes`), Presença (`/presenca`), Partidos (`/partidos`),
+Método (`/metodologia`), as mesmas em todas as cidades, sob `/sp/` e `/rj/<slug>/`. Num município de
+nível 0, Vereadores mostra a lista do TSE, Partidos as cadeiras por partido, e Votações e Presença
+dizem o que a câmara não publica. Teclas `1`–`5` trocam de tela, `u` passa à próxima cidade; o campo
+de cidade no cabeçalho busca pelo nome; setas, `v`, `e`, `r` por tela.
+
+### Layout
 
 ```text
 backend/app/
@@ -60,13 +70,9 @@ frontend/
 deploy/build-site.sh          roda no servidor, por cron, uma vez por dia; ETL e build das duas cidades
 ```
 
-Telas: Vereadores (`/`), Votações (`/votacoes`), Presença (`/presenca`), Partidos (`/partidos`),
-Método (`/metodologia`), as mesmas em todas as cidades, sob `/sp/` e `/rj/<slug>/`. Num município de
-nível 0, Vereadores mostra a lista do TSE, Partidos as cadeiras por partido, e Votações e Presença
-dizem o que a câmara não publica. Teclas `1`–`5` trocam de tela, `u` passa à próxima cidade; o campo
-de cidade no cabeçalho busca pelo nome; setas, `v`, `e`, `r` por tela.
+## Instructions
 
-## Setup
+### Setup
 
 ```bash
 cd backend && uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -e ".[dev]"
@@ -90,7 +96,7 @@ testa Rio, São Paulo, Niterói, Macuco e Petrópolis).
 
 Build de produção: `npm run build` (base `/vereadores`; `NEXT_PUBLIC_BASE_PATH=` serve na raiz).
 
-## Deploy
+### Deploy
 
 O site vive em `g0v.tomoyo.systems/vereadores`, no nginx estático do g0v (ver o repositório
 [g0v](https://github.com/Tomoyo-Computer-Science-Research-Unit/g0v)). O cron roda
@@ -100,3 +106,27 @@ e, se algo mudou, faz um build só e o publica em `/root/g0v/site/vereadores/`. 
 bem guarda a sua saída em `/root/g0v/data-ok-vereadores/`; se uma parte falha, ela segue com esse último
 snapshot bom (ou, sem ele, com o de `main`). `SKIP_DATA=1` não lê fonte nenhuma e constrói com os
 últimos snapshots bons. Falhas avisam por e-mail.
+
+## Resources
+
+- Rio: as páginas do site camara.rio e as bases Lotus Domino de aplicnt.camara.rj.gov.br (lista
+  de vereadores, frequência mensal, proposições do SPL e atas de sessão).
+- São Paulo: dados abertos da Câmara Municipal: o XML anual do painel de votações, a lista de
+  presença de cada sessão plenária em XML, o web service SPLegis e as páginas dos vereadores no portal.
+- Municípios do Estado do Rio: dados abertos do TSE (eleitos e suplentes de 2020 e 2024) e a API do
+  SAPL 3 do Interlegis nas câmaras que o usam.
+- `FINDINGS.md`: fontes, contagens reais e ressalvas; `backend/data/rj-camaras.csv`: levantamento das
+  92 câmaras (site, sistema, o que publicam).
+- Repositório [g0v](https://github.com/Tomoyo-Computer-Science-Research-Unit/g0v): o nginx estático
+  onde o site vive.
+
+AI was used to scaffold the ETL (downloader with cache, snapshot and export scripts), to write the parsers of the Câmara do Rio pages, the São Paulo XML and web services, the TSE files and the SAPL API, and the frontend shell; the result was reviewed against the sources listed above and tested with the fixtures in `backend/tests/fixtures` and the Playwright tests in `frontend/tests`.
+
+## Limitations
+
+- A Câmara do Rio não publica API nem arquivos abertos da atividade legislativa; as votações nominais
+  são extraídas das atas por expressões regulares e conferidas contra a contagem impressa.
+- Nos municípios do Estado do Rio, o dado depende do que cada câmara publica: nível 0, só vereadores
+  (TSE); 1, proposições; 2, presença; 3, votos nominais. Num município de nível 0, Votações e Presença
+  dizem o que a câmara não publica.
+- Detalhes, contagens reais e ressalvas em `FINDINGS.md`.
