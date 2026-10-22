@@ -32,6 +32,7 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -80,7 +81,7 @@ class Sapl:
         self.verify = True
         self.total: int | None = None
         self.client = httpx.Client(headers={"User-Agent": config.USER_AGENT, "Accept": "application/json"},
-                                   timeout=60, follow_redirects=True)
+                                   timeout=60, follow_redirects=True, verify=str(config.CA_BUNDLE))
 
     def get(self, path: str, params: dict, allow_404: bool = True) -> dict:
         url = f"{self.base}/api/{path}/"
@@ -97,11 +98,12 @@ class Sapl:
                 r.raise_for_status()
                 return r.json()
             except httpx.ConnectError as exc:
-                if "CERTIFICATE" in str(exc).upper() and self.verify:
-                    self.verify = False
-                    self.client = httpx.Client(headers=self.client.headers, timeout=60, follow_redirects=True, verify=False)
-                    log(self.slug, "certificado TLS inválido; seguindo sem verificação")
-                    continue
+                if "CERTIFICATE" in str(exc).upper():
+                    host = urlsplit(self.base).hostname or self.base
+                    raise RuntimeError(
+                        f"certificado TLS inválido em {host}: {exc}. Se a cadeia do servidor estiver "
+                        f"incompleta, acrescente a intermediária a backend/app/cabundle.pem; o ETL não "
+                        f"segue sem verificação.") from exc
                 if attempt == 2:
                     raise
             except (httpx.HTTPError, json.JSONDecodeError):
