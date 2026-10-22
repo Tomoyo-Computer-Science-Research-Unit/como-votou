@@ -59,6 +59,24 @@ class Downloader:
             time.sleep(wait)
         self._last = time.monotonic()
 
+    def _request(self, method: str, url: str, data: dict[str, str] | None) -> httpx.Response:
+        """One request, retried up to 3 times (0.5 s, 1 s, 2 s) on transport errors and 5xx."""
+        for attempt in range(4):
+            self._throttle()
+            self.requests_made += 1
+            try:
+                r = self._client.post(url, data=data) if method == "POST" else self._client.get(url)
+                r.raise_for_status()
+                return r
+            except httpx.TransportError:
+                if attempt == 3:
+                    raise
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code < 500 or attempt == 3:
+                    raise
+            time.sleep(0.5 * 2 ** attempt)
+        raise RuntimeError("unreachable")
+
     def fetch(self, url: str, *, data: dict[str, str] | None = None, refresh: bool = False) -> Fetched:
         method = "POST" if data is not None else "GET"
         base = self._key(method, url, data)
@@ -70,10 +88,7 @@ class Downloader:
         elif self.offline:
             raise FileNotFoundError(f"offline and not cached: {method} {url}")
         else:
-            self._throttle()
-            self.requests_made += 1
-            r = self._client.post(url, data=data) if data is not None else self._client.get(url)
-            r.raise_for_status()
+            r = self._request(method, url, data)
             base.parent.mkdir(parents=True, exist_ok=True)
             body.write_bytes(r.content)
             accessed = datetime.now(timezone.utc).isoformat(timespec="seconds")
