@@ -25,6 +25,8 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
+import httpx
+
 from .. import config
 from ..http import Downloader
 from ..parsers.cmsp import (SessaoRef, fase_of, objeto_of, parse_autores, parse_membros, parse_presenca_sessao,
@@ -170,8 +172,10 @@ def load_vereadores(dl: Downloader, refresh: bool) -> tuple[dict, dict, list[str
     for page in range(1, 10):
         try:
             rows = dl.fetch(f"{config.CMSP_WP}?per_page=100&page={page}", refresh=refresh).json()
-        except Exception:      # past the last page WordPress answers 400
-            break
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 400:      # past the last page WordPress answers 400
+                break
+            raise
         if not isinstance(rows, list) or not rows:
             break
         wp_rows.extend(rows)
