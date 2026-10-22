@@ -229,7 +229,7 @@ def build(client: httpx.Client) -> dict:
         for code, m in parse_year(year, client).items():
             slug = slugify(m["nome"])
             if slug not in by_slug:
-                raise SystemExit(f"município do TSE sem par no IBGE: {m['nome']} ({code})")
+                raise RuntimeError(f"município do TSE sem par no IBGE: {m['nome']} ({code})")
             mun = municipios.setdefault(slug, {"slug": slug, "nome": by_slug[slug]["nome"], "ibge": by_slug[slug]["id"],
                                                "tse": code, "eleicoes": {}, "pessoas": {}})
             cands = list(m["candidatos"].values())
@@ -317,7 +317,11 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     with _client() as client:
-        data = build(client)
+        try:
+            data = build(client)
+        except RuntimeError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
         n = len(data["municipios"])
         eleitos = sum(1 for m in data["municipios"].values() for p in m["pessoas"] if p["eleicoes"].get("2024", {}).get("situacao") == "eleito")
         log(f"{n} municípios, {eleitos} eleitos em 2024")
